@@ -7,13 +7,13 @@
 | 前提コマ | コマ10 React Testing Library②（ユーザー操作テスト） |
 | 次コマ | コマ12 カバレッジ計測 |
 
-## 🎯 目標
+##  目標
 
 - **モック（mock）** の役割を説明でき、なぜテストで必要なのかを言える
 - `vi.fn()` と `vi.spyOn()` / グローバル `fetch` の差し替えを使い分けられる
 - `findBy〜` と `waitFor` で非同期UIの検証ができる
 
-## 📋 導入（15分）
+##  導入（15分）
 
 ### 前回の振り返り
 
@@ -37,7 +37,7 @@
 3. **環境に依存するもの**（`process.env`、ブラウザAPIの一部）
 4. **コールバック関数**（前回の `vi.fn()` もモックの一種）
 
-## 🛠 本題（65分）
+##  本題（65分）
 
 ### 1. モック基礎：vi.fn と vi.spyOn（10分）
 
@@ -104,7 +104,7 @@ function ApiSample() {
     <ul>
       {todos.map((todo) => (
         <li key={todo.id}>
-          {todo.completed ? '✅' : '⬜'} {todo.title}
+          {todo.completed ? '' : '⬜'} {todo.title}
         </li>
       ))}
     </ul>
@@ -309,7 +309,7 @@ npm run test:ui
 
 ブラウザでテスト結果がグラフィカルに確認できる。
 
-## ✅ まとめ（10分）
+##  まとめ（10分）
 
 ### 今日できるようになったこと
 
@@ -327,7 +327,41 @@ npm run test:ui
 
 次回は **カバレッジ**。どれだけのコードをテストが通過したかを計測し、足りていないところを見つける。Phase 2のラスト。
 
-## 📝 課題
+##  課題
+
+### 基礎課題（必須）
 
 1. `ApiSample` にリトライボタンを追加し、ボタン押下で再 fetch する挙動のテストを書く（fetch を2回呼ばせる）
 2. 差分をコミットし、これまでのブランチで全テストPASSを確認してから PR を作る
+
+### 応用課題（推奨）
+
+3. **エラー状態のテスト**：fetch が 500 を返したらエラー文言が画面に出るテストを書く：
+
+```jsx
+globalThis.fetch = vi.fn().mockResolvedValue({
+  ok: false,
+  status: 500,
+  statusText: 'Internal Server Error',
+})
+```
+
+4. **ローディング状態のテスト**：fetch 応答前は「読み込み中…」が表示され、応答後に消えることを確認する。`Promise` を手動で解決するテクニックを使う：
+
+```jsx
+let resolvePromise
+const promise = new Promise((resolve) => { resolvePromise = resolve })
+globalThis.fetch = vi.fn(() => promise)
+// ... 「読み込み中」が見えることを確認
+resolvePromise({ ok: true, json: async () => [...] })
+// ... 消えたことを確認
+```
+
+> **狙い：** 「正常系だけテストしてる」のは完成度半分。**異常系・中間状態** までカバーしてこそ安心。
+
+### チャレンジ課題（挑戦）
+
+5. **MSW（Mock Service Worker）** を調べて、「なぜ `vi.fn` で `fetch` を書き換えるより MSW を使った方が良いとされるのか」を1〜2行にまとめる（導入は必須でない、調査のみ）
+   - ヒント：実装側のコード変更が要らない／ブラウザでも共用できる／ネットワーク層でモック
+
+6. **`waitFor` のタイムアウトを意図的に短くする** 実験：`waitFor(() => ..., { timeout: 100 })` にして、わざとFAILさせる。エラーメッセージに何が書いてあるかを読む。**テストが落ちた時のメッセージ品質** を意識する習慣を付ける

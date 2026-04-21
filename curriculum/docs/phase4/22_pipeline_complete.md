@@ -7,13 +7,13 @@
 | 前提コマ | コマ21 Vercel連携・プレビューデプロイ |
 | 次コマ | コマ23 デバッグ演習 |
 
-## 🎯 目標
+##  目標
 
 - Push → Lint → Test → Build → Deploy の全自動パイプラインを整理できる
 - ジョブ間依存を `needs:` で設計できる
 - README にバッジ・構成図を書き、プロジェクトの全体像を第三者に伝えられる
 
-## 📋 導入（15分）
+##  導入（15分）
 
 ### 前回までの振り返り
 
@@ -50,7 +50,7 @@
  └─────────────┘ └──────────────┘
 ```
 
-## 🛠 本題（65分）
+##  本題（65分）
 
 ### 1. ワークフロー構成を見直す（10分）
 
@@ -219,12 +219,12 @@ React 19 + Vite で作った学習用TODOアプリ。
 [![CI](https://github.com/ユーザー名/todo-app/actions/workflows/ci.yml/badge.svg)](https://github.com/ユーザー名/todo-app/actions/workflows/ci.yml)
 [![Deploy](https://github.com/ユーザー名/todo-app/actions/workflows/deploy-ghpages.yml/badge.svg)](https://github.com/ユーザー名/todo-app/actions/workflows/deploy-ghpages.yml)
 
-## 🌐 公開URL
+##  公開URL
 
 - **本番（Vercel）**：https://todo-app-xxxx.vercel.app/
 - **本番（GitHub Pages）**：https://ユーザー名.github.io/todo-app/
 
-## 🛠 技術スタック
+##  技術スタック
 
 - React 19 / Vite
 - Vitest / React Testing Library
@@ -232,7 +232,7 @@ React 19 + Vite で作った学習用TODOアプリ。
 - GitHub Actions（CI/CD）
 - GitHub Pages / Vercel（デプロイ）
 
-## 🚀 ローカル開発
+##  ローカル開発
 
 \`\`\`bash
 npm install
@@ -243,7 +243,7 @@ npm run format    # 整形
 npm run build     # 本番ビルド
 \`\`\`
 
-## 🔄 CI/CD パイプライン
+##  CI/CD パイプライン
 
 \`\`\`
 push / PR
@@ -293,7 +293,7 @@ CI全緑を確認 → マージ → mainの GH Pages・Vercel 両方で動作確
 
 → Phase 5 の発表で「これだけの自動化を構築した」証拠として使う。
 
-## ✅ まとめ（10分）
+##  まとめ（10分）
 
 ### 今日できるようになったこと
 
@@ -315,7 +315,55 @@ CI全緑を確認 → マージ → mainの GH Pages・Vercel 両方で動作確
 
 次回は **デバッグ演習**。わざと壊れたワークフローを配って、ログを読み解いて直す練習。実務ではここが一番時間を使う部分。
 
-## 📝 課題
+##  課題
+
+### 基礎課題（必須）
 
 1. 自分のプロジェクトのREADMEをチームメイト／家族に見せて、「何ができるアプリで、どう動いているか」30秒で説明してもらう（伝われば勝ち）
 2. `ci.yml` に `build` ジョブの Artifact をPRコメントにリンクするステップを追加する（調べ課題）
+
+### 応用課題（推奨）
+
+3. **ワークフローの実行時間を計測** し、ボトルネックを特定する：
+   - 各ジョブの実行時間を Actions タブで確認
+   - 最も時間がかかっているステップは？（たいていは `npm ci` か `npm run test`）
+   - キャッシュを有効化する前後で差が出るか
+
+4. **並列ジョブの依存関係図を README に追加**。mermaid構文が使える：
+
+```markdown
+\`\`\`mermaid
+graph LR
+  Push --> Lint
+  Push --> Test
+  Lint --> Build
+  Test --> Build
+  Build --> GHPages
+  Build --> Vercel
+\`\`\`
+```
+
+→ 文章より図のほうが伝わる。GitHub は mermaid をレンダリングしてくれる。
+
+5. **各ワークフローに `timeout-minutes:` を設定** する（例：`timeout-minutes: 10`）。暴走ジョブで無料枠を食いつぶさない守り
+
+> **狙い：** 「動いているからヨシ」ではなく、**時間・コスト・失敗時の影響** まで設計して初めてパイプライン。
+
+### チャレンジ課題（挑戦）
+
+6. **dist/ サイズが閾値を超えたら PR を失敗** させる仕組みを組む：
+
+```yaml
+- name: サイズチェック
+  run: |
+    SIZE=$(du -sb dist/ | cut -f1)
+    echo "dist size: $SIZE bytes"
+    if [ $SIZE -gt 524288 ]; then    # 512KB
+      echo "❌ dist is too large"
+      exit 1
+    fi
+```
+
+→ パフォーマンス意識を **仕組み** で担保する。誰かが気付くのを待たない。
+
+7. **ワークフローの依存関係** を別の視点で整理：「もし lint だけ手動で再実行したい時は？」「失敗したジョブだけ re-run したい時は？」を調べて、**GitHub UI の Re-run 機能** を1度使ってみる

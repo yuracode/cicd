@@ -7,13 +7,13 @@
 | 前提コマ | コマ17 ブランチ保護ルール |
 | 次コマ | コマ19 デプロイ先選定 |
 
-## 🎯 目標
+##  目標
 
 - ソースコードに秘密情報を直接書いてはいけない理由を説明できる
 - GitHub Secrets に値を登録し、ワークフローから安全に参照できる
 - 本番／開発環境を Environments で分けて管理できる
 
-## 📋 導入（15分）
+##  導入（15分）
 
 ### よくある事故
 
@@ -39,7 +39,7 @@
 2. GitHub Actions は **Secrets** で渡す
 3. 本番と開発で **Environments** を分ける
 
-## 🛠 本題（65分）
+##  本題（65分）
 
 ### 1. ローカル：.env と .gitignore（10分）
 
@@ -179,8 +179,8 @@ GitHub画面で：
 - Name: `production`
 - Environment secrets: `API_KEY = prod-key-yyy`
 - **Protection rules：**
-  - ✅ Required reviewers（デプロイ前に人間の承認を要求）
-  - ✅ Deployment branches → `main` のみ
+  -  Required reviewers（デプロイ前に人間の承認を要求）
+  -  Deployment branches → `main` のみ
 
 ワークフロー側：
 
@@ -224,7 +224,7 @@ jobs:
 
 > **重要：** git log を cleanしてもGitHubには残っていることがある。**無効化が最優先**。
 
-## ✅ まとめ（10分）
+##  まとめ（10分）
 
 ### 今日できるようになったこと
 
@@ -246,7 +246,38 @@ jobs:
 
 Phase 4 スタート。作ったReactアプリを **自動でインターネットに公開** する。GitHub Pages と Vercel、それぞれの違いと向き不向きを知る。
 
-## 📝 課題
+##  課題
+
+### 基礎課題（必須）
 
 1. 自分のリポジトリに `VITE_API_URL` を Secrets に登録し、CIで値の長さが出ることを確認する
 2. `.env.example` を必ず作ってコミット済みの状態にする（チーム開発の基本マナー）
+
+### 応用課題（推奨）
+
+3. **Environments 機能** を使って `production` と `development` でSecretsを分離する。ワークフロー側で `environment: production` を指定したジョブと `environment: development` を指定したジョブで、同じ `secrets.VITE_API_URL` が別の値になることを確認
+
+4. **Secret debug用のテクニック** を試す：
+
+```yaml
+- name: Secretの長さだけ確認（値は出さない）
+  run: echo "Length is ${#MY_SECRET}"
+  env:
+    MY_SECRET: ${{ secrets.VITE_API_URL }}
+```
+
+値そのものは絶対ログに出さず、「入っている／入っていない」「長さが妥当か」だけを確認する習慣を身につける。
+
+> **狙い：** Secretのデバッグで **うっかり値をログ出力** すると事故になる。**出さないでも判定できる技** を持っておく。
+
+### チャレンジ課題（挑戦）
+
+5. **「Secretを誤ってコミットしてしまった」インシデント対応手順** を紙上で再現してみる。以下を順序立てて自分の言葉で書く：
+   1. 最優先で何をするか（答え：漏れたキーの **無効化・再発行**）
+   2. git履歴からの削除はどう行うか（ツール名まで：`git filter-repo` / BFG）
+   3. チームへの周知と再発防止策の決定
+   4. 影響範囲調査（そのキーで何にアクセスできたか）
+
+→ 実際に事故ってから考えるのでは遅い。**事前に手順を整理しておく** のが事故対応の鉄則。
+
+6. **OIDC（OpenID Connect）による短期クレデンシャル** の概念を調べる：AWS / GCP にデプロイする際、長期Secretを使わずにその場限りのトークンで認証する方式。GitHub Actions の `permissions: id-token: write` と関係する。1〜2行でまとめる

@@ -7,13 +7,13 @@
 | 前提コマ | コマ11 モック・非同期テスト |
 | 次コマ | コマ13 GitHub Actions概要・YAML構文 |
 
-## 🎯 目標
+##  目標
 
 - **カバレッジ** の4種類（Statements / Branches / Functions / Lines）を区別できる
 - Vitest でカバレッジを計測し、HTMLレポートを読める
 - カバレッジ100%を盲信せず、「何をテストすべきか」を自分で判断できる
 
-## 📋 導入（15分）
+##  導入（15分）
 
 ### 前回の振り返り
 
@@ -35,7 +35,7 @@
 
 Vitestで自分のプロジェクトのカバレッジを計測し、HTMLレポートを読み、「弱い部分」を補強するテストを1〜2本追加する。
 
-## 🛠 本題（65分）
+##  本題（65分）
 
 ### 1. カバレッジの4指標（10分）
 
@@ -171,7 +171,7 @@ HTMLで弱いファイルを選んで、テストを1〜2本追加する。
 // 仮にこんな関数だったとする
 export function formatTodo(todo) {
   if (!todo) return ''
-  return todo.completed ? `✅ ${todo.text}` : `⬜ ${todo.text}`
+  return todo.completed ? ` ${todo.text}` : `⬜ ${todo.text}`
 }
 ```
 
@@ -184,8 +184,8 @@ describe('formatTodo', () => {
     expect(formatTodo(null)).toBe('')
   })
 
-  it('completed: true なら ✅ プレフィックス', () => {
-    expect(formatTodo({ text: 'A', completed: true })).toBe('✅ A')
+  it('completed: true なら  プレフィックス', () => {
+    expect(formatTodo({ text: 'A', completed: true })).toBe(' A')
   })
 
   it('completed: false なら ⬜ プレフィックス', () => {
@@ -247,7 +247,7 @@ git status
 # coverage/ が ignoreされていればOK
 ```
 
-## ✅ まとめ（10分）
+##  まとめ（10分）
 
 ### 今日できるようになったこと
 
@@ -269,8 +269,42 @@ git status
 
 Phase 3 スタート。GitHub Actions が「何者なのか」から始めて、YAMLの基本を学ぶ。まだワークフローは書かない準備コマ。
 
-## 📝 課題
+##  課題
+
+### 基礎課題（必須）
 
 1. `npm run test:coverage` を実行し、自分のプロジェクトで **Branches が80%未満** のファイルを1つ特定する
 2. そのファイルにテストを追加し、80%以上まで上げる
 3. Phase 2 でここまでに学んだ内容を、README.mdに「このプロジェクトは〜でテストされている」の1段落にまとめる（3〜5行）
+
+### 応用課題（推奨）
+
+4. `vite.config.js` にカバレッジの **閾値（thresholds）** を設定し、80%未満で `npm run test:coverage` が失敗するようにする：
+
+```js
+test: {
+  coverage: {
+    thresholds: { lines: 80, branches: 80, functions: 80, statements: 80 },
+  },
+},
+```
+
+→ CIに乗せた時に **「テストが足りないPRは通らない」** という品質ゲートを作る第一歩。
+
+5. 自分のファイル一覧を眺めて、**「このファイルは80%目指すべき／このファイルは無理に書かなくていい」** と **1ファイルずつ判断** してメモにする。例：`utils.js` は100%目指す、`main.jsx` はエントリポイントだけなので対象外、等。**判断理由も添える**
+
+> **狙い：** 「全部80%」と脳死で書くのではなく、**どこに労力をかけるべきかを自分で決める** 練習。
+
+### チャレンジ課題（挑戦）
+
+6. **「カバレッジが100%なのにバグが入り込める」例** を自分で作ってみる。例えば次のコード：
+
+```js
+export function divide(a, b) {
+  return a / b   // b=0 のテストがない → 100%カバレッジでも NaN/Infinity バグを見逃す
+}
+```
+
+→ 「全分岐を通過している＝正しい」ではないことを示す反例を1つ作って、テストに追加する。**「カバレッジは必要条件、十分条件ではない」** を体感する
+
+7. **Mutation Testing**（ミューテーション／変異テスト）という概念を調べ、通常のカバレッジ指標と何が違うのかを1〜2行でまとめる（ツール：`stryker-mutator`。実装は任意）

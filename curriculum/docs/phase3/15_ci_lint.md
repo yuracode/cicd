@@ -7,13 +7,13 @@
 | 前提コマ | コマ14 初めてのワークフロー |
 | 次コマ | コマ16 CI：テストの自動化 |
 
-## 🎯 目標
+##  目標
 
 - ESLint と Prettier の役割の違いを説明できる
 - ローカルで `npm run lint` が動く状態にできる
 - GitHub Actions で PR 時に Lint を自動実行できる
 
-## 📋 導入（15分）
+##  導入（15分）
 
 ### 前回の振り返り
 
@@ -43,7 +43,7 @@ Actions が動くようになった。今日からは実用のCI構築。
 
 `npm create vite` で React テンプレを作ると、**デフォルトで ESLint 設定済み**。`eslint.config.js` がプロジェクト直下にある。今回はそれを活用しつつ Prettier を追加する。
 
-## 🛠 本題（65分）
+##  本題（65分）
 
 ### 1. 既存のESLint設定を確認（10分）
 
@@ -273,7 +273,7 @@ git pull origin main
 
 > **`--squash`**：複数コミットを1つにまとめてマージ（履歴がきれい）
 
-## ✅ まとめ（10分）
+##  まとめ（10分）
 
 ### 今日できるようになったこと
 
@@ -291,7 +291,47 @@ git pull origin main
 
 次回はテストもCIで回す。`npm run test` と `npm run test:coverage` をワークフローに追加し、カバレッジをPRコメントに出すところまでやる。
 
-## 📝 課題
+##  課題
+
+### 基礎課題（必須）
 
 1. `.editorconfig` を作成し、エディタ間でインデント等を統一する（2スペース、UTF-8、改行LF）
 2. `npm run format` を main ブランチ全体に適用し、差分を1本のPRとしてマージする（コミットメッセージは `chore:` で）
+
+### 応用課題（推奨）
+
+3. **pre-commit フック** を `husky` で導入し、コミット時に自動で `npm run lint` が走るようにする：
+
+```bash
+npm install -D husky
+npx husky init
+echo "npm run lint" > .husky/pre-commit
+```
+
+→ わざとlint違反を含むコミットを試して、ブロックされることを確認する。
+
+4. ESLintのルールをカスタマイズする。例えば **`no-console`** を `warn` で有効化して、`console.log` が残っていたらCIで警告が出る状態にする。本番コードに `console.log` が残りがちな問題を仕組みで防ぐ
+
+> **狙い：** 「人の注意力」ではなく「仕組み」でコード品質を担保する。レビューで言わなくても済むことを増やす。
+
+### チャレンジ課題（挑戦）
+
+5. **ESLintエラーを PR の Files changed タブに直接表示** する：
+
+```yaml
+- run: npx eslint . --format=@microsoft/eslint-formatter-sarif --output-file=eslint-results.sarif
+  continue-on-error: true
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: eslint-results.sarif
+```
+
+または簡易版：
+
+```yaml
+- run: npm run lint -- --format=github
+```
+
+→ どちらも違反箇所にアノテーションが付き、レビュワーが一目で分かる状態になる
+
+6. **Prettierと ESLint の役割分担の境界線** を自分の言葉で1〜2行にまとめる。両者が衝突する具体例を1つ示す（例：`arrow-parens`）

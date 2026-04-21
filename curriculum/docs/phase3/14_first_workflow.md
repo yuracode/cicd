@@ -7,13 +7,13 @@
 | 前提コマ | コマ13 GitHub Actions概要・YAML構文 |
 | 次コマ | コマ15 CI：Lintの自動化 |
 
-## 🎯 目標
+##  目標
 
 - `.github/workflows/` にワークフローファイルを作成できる
 - GitHub上の Actions タブで実行履歴・ログを読める
 - `workflow_dispatch` で手動実行、`push` で自動実行の両方を試せる
 
-## 📋 導入（15分）
+##  導入（15分）
 
 ### 前回の振り返り
 
@@ -39,7 +39,7 @@ todo-app/
 └── ...
 ```
 
-## 🛠 本題（65分）
+##  本題（65分）
 
 ### 1. ワークフローファイルを作る（15分）
 
@@ -244,7 +244,7 @@ jobs:
 
 コミットしてmainに入れておく。
 
-## ✅ まとめ（10分）
+##  まとめ（10分）
 
 ### 今日できるようになったこと
 
@@ -262,7 +262,48 @@ jobs:
 
 次回は実用の第一歩。ESLintを設定してCIで自動チェック。「コードの汚れたPR」をマージできない状態にしていく。
 
-## 📝 課題
+##  課題
+
+### 基礎課題（必須）
 
 1. `hello.yml` に `echo "Hello $GITHUB_ACTOR"` のステップを追加し、自分のGitHubユーザー名が表示されることを確認する
 2. Actions のログを開いて、仮想マシンのOS情報（`uname -a` など）を表示する step を追加してみる
+
+### 応用課題（推奨）
+
+3. **複数ステップを連結する** ワークフローを書く。各ステップに意味のある `name:` を付けて、Actions のログで流れを追えるようにする：
+
+```yaml
+steps:
+  - name: 1. ファイルを作る
+    run: echo "Hello" > greeting.txt
+  - name: 2. 中身を表示
+    run: cat greeting.txt
+  - name: 3. 行数をカウント
+    run: wc -l greeting.txt
+```
+
+4. **2つのジョブを並列に実行** する練習：`job-a` と `job-b` を定義し、Actions のタイムラインで並行実行されていることを確認する。各ジョブの所要時間をログで計測
+
+> **狙い：** ジョブは並列、ステップは直列。この基本を体感で覚えると後々の設計が楽になる。
+
+### チャレンジ課題（挑戦）
+
+5. **条件分岐 `if:`** をワークフローに入れる。例：「ブランチ名が `feature/` で始まる時だけ挨拶する」：
+
+```yaml
+- name: featureブランチ挨拶
+  if: startsWith(github.ref_name, 'feature/')
+  run: echo "Feature branch detected!"
+```
+
+→ `github.ref_name` 以外の **コンテキスト変数** も調べて、1つ使ってみる（例：`github.event_name`, `github.actor`）
+
+6. **ワークフロー間の連携** を調べる：`workflow_run` イベントを使うと、別ワークフローの完了をトリガにできる。実装は任意、**概念だけ** 押さえてメモする
+
+7. GitHub Actions の **Job Summary** 機能（`$GITHUB_STEP_SUMMARY`）を使って、ジョブの実行結果を **Markdown形式でActionsのタブに表示** してみる：
+
+```yaml
+- run: echo "## 今日の実行結果" >> $GITHUB_STEP_SUMMARY
+- run: echo "- 成功件数：1" >> $GITHUB_STEP_SUMMARY
+```

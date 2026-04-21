@@ -7,13 +7,13 @@
 | 前提コマ | コマ19 デプロイ先選定 |
 | 次コマ | コマ21 Vercel連携・プレビューデプロイ |
 
-## 🎯 目標
+##  目標
 
 - Vite の `base` 設定を変更し、サブディレクトリURLでビルドできる
 - GitHub Pages にデプロイするワークフローを書ける
 - main への push をトリガーに自動で本番URLが更新される状態にできる
 
-## 📋 導入（15分）
+##  導入（15分）
 
 ### 前回の振り返り
 
@@ -33,7 +33,7 @@ GitHub Pages と Vercel の違いを比較した。今日は GitHub Pages を自
 https://ユーザー名.github.io/todo-app/
 ```
 
-## 🛠 本題（65分）
+##  本題（65分）
 
 ### 1. リポジトリを public に（5分）
 
@@ -229,7 +229,7 @@ https://ユーザー名.github.io/todo-app/
 | デプロイが完了しない | リポジトリがprivate のまま / Pages Source設定忘れ |
 | URL開くと 404 | Pages設定が `GitHub Actions` になっているか確認 |
 
-## ✅ まとめ（10分）
+##  まとめ（10分）
 
 ### 今日できるようになったこと
 
@@ -247,7 +247,9 @@ https://ユーザー名.github.io/todo-app/
 
 次回は **Vercel**。GitHub Pages との違い、PRプレビューの強力さを体感する。同じ TODOアプリを Vercel にもデプロイする。
 
-## 📝 課題
+##  課題
+
+### 基礎課題（必須）
 
 1. 公開URLを README.md の冒頭に載せる：
 
@@ -257,3 +259,48 @@ https://ユーザー名.github.io/todo-app/
 
 2. `build` ジョブに `npm run lint` も入れて、Lint失敗時はデプロイしないようにする
 3. 公開URLを友達や家族に送って、実際に使ってもらう（この達成感が重要）
+
+### 応用課題（推奨）
+
+4. **デプロイ前にビルド成果物のサイズを表示** するステップを追加する：
+
+```yaml
+- name: ビルドサイズを確認
+  run: |
+    du -sh dist/
+    ls -lh dist/assets/
+```
+
+→ Actions のログでPRごとに dist/ のサイズが記録される。**サイズが急に膨らんだらアラート** できる土台。
+
+5. **カスタムドメイン設定** の手順を公式ドキュメントで調べ、以下をメモする（実施は任意）：
+   - リポジトリに `CNAME` ファイルを置く
+   - DNS の CNAME レコード設定
+   - HTTPS の自動発行まで何分かかるか
+
+実際のドメインを持っていなくても、**手順を読んで理解** することが価値。
+
+### チャレンジ課題（挑戦）
+
+6. **`base` を環境変数で切り替える** 設定に変更する（次コマで Vercel と両立させるための準備）：
+
+```javascript
+// vite.config.js
+export default defineConfig(() => ({
+  plugins: [react()],
+  base: process.env.DEPLOY_TARGET === 'gh-pages' ? '/todo-app/' : '/',
+  // ...
+}))
+```
+
+そしてワークフローで：
+
+```yaml
+- run: npm run build
+  env:
+    DEPLOY_TARGET: gh-pages
+```
+
+→ ローカル実行時は `/`、GitHub Pages 用ビルド時だけ `/todo-app/` になることを確認。
+
+7. **GitHub Pages の URL 構造** を調べる：ユーザーサイト（`username.github.io`）と プロジェクトサイト（`username.github.io/repo-name`）の違い、**組織アカウント** の場合の違いを1〜2行にまとめる

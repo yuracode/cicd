@@ -7,13 +7,13 @@
 | 前提コマ | コマ27 個人制作③：テスト追加 |
 | 次コマ | コマ29 発表準備（README・スライド） |
 
-## 🎯 目標
+##  目標
 
 - `.github/workflows/ci.yml` を配置し、PR/push時にLint・テストが自動実行される
 - Vercel または GitHub Pages に自動デプロイされる本番URLを公開できる
 - ブランチ保護・バッジ・公開URLを README に仕上げる
 
-## 📋 導入（15分）
+##  導入（15分）
 
 ### 今日のゴール
 
@@ -41,7 +41,7 @@ main にマージ
 
 Phase 3〜4 の内容を **自分のプロジェクトに適用** するだけ。新しいことは少ない。
 
-## 🛠 本題（65分）
+##  本題（65分）
 
 ### 1. CI ワークフローを配置（15分）
 
@@ -201,10 +201,10 @@ GitHub側で **Settings → Pages → Source: GitHub Actions** を選択。
 - Enforcement: Active
 - Target: Include default branch
 - Rules:
-  - ✅ Restrict deletions
-  - ✅ Require a pull request before merging（Required approvals: 0 でもOK・1人作業なら）
-  - ✅ Require status checks to pass（Add: `lint`, `test`, `build`）
-  - ✅ Block force pushes
+  -  Restrict deletions
+  -  Require a pull request before merging（Required approvals: 0 でもOK・1人作業なら）
+  -  Require status checks to pass（Add: `lint`, `test`, `build`）
+  -  Block force pushes
 
 Create で確定。
 
@@ -227,21 +227,21 @@ Create で確定。
 
 [![CI](https://github.com/ユーザー名/アプリ名/actions/workflows/ci.yml/badge.svg)](https://github.com/ユーザー名/アプリ名/actions/workflows/ci.yml)
 
-## 🌐 公開URL
+##  公開URL
 
 https://your-app.vercel.app/
 
-## 📸 スクリーンショット
+##  スクリーンショット
 
 ![screenshot](./docs/screenshot.png)
 
-## ✨ 機能
+##  機能
 
 - 機能1
 - 機能2
 - 機能3
 
-## 🛠 技術スタック
+##  技術スタック
 
 - React 19 / Vite
 - Vitest / React Testing Library
@@ -249,7 +249,7 @@ https://your-app.vercel.app/
 - GitHub Actions（CI/CD）
 - Vercel（デプロイ）
 
-## 🚀 開発
+##  開発
 
 \`\`\`bash
 npm install
@@ -259,7 +259,7 @@ npm run lint
 npm run build
 \`\`\`
 
-## 🔄 CI/CD パイプライン
+##  CI/CD パイプライン
 
 \`\`\`
 PR / push
@@ -316,7 +316,7 @@ PRのChecks が全て緑になることを確認。
 **Vercel のプレビューURL** が付くことも確認。
 マージ → mainの本番URLで動作確認。
 
-## ✅ まとめ（10分）
+##  まとめ（10分）
 
 ### 今日の達成
 
@@ -334,8 +334,47 @@ PRのChecks が全て緑になることを確認。
 
 次回は **発表準備**。README と発表スライドを仕上げ、3分で自分のプロジェクトを説明できる状態にする。
 
-## 📝 課題
+##  課題
+
+### 基礎課題（必須）
 
 1. 公開URLを友人・家族・SNS で共有してフィードバックをもらう
 2. フィードバックで出た軽微な修正（見た目、誤字等）があれば PR で対応
 3. 次回までに発表原稿（何を話すか箇条書き）を考えてくる
+
+### 応用課題（推奨）
+
+4. **Lighthouse** をブラウザ（Chrome DevTools → Lighthouse タブ）で実行し、4指標を測定：
+   - Performance（速度）
+   - Accessibility（アクセシビリティ）
+   - Best Practices（一般的なベストプラクティス）
+   - SEO
+
+80点未満の項目があれば **1つだけ** 改善する（例：画像に alt 追加、ボタンにaria-label 追加）
+
+5. **ブランチ保護 + CODEOWNERS + CI + 本番URL** の状態を **スクリーンショット** で記録：
+   - Settings → Rules のページ
+   - `.github/CODEOWNERS` の内容
+   - Actions の成功履歴
+   - 本番URL（Vercel / GH Pages）
+
+→ 発表スライドに貼る「成果の証拠」。
+
+6. **README の最終確認**：未知の人が READMEを読むだけで、「何が動く／どう動かす／どう自分のPCで試す」が全て分かる状態か点検
+
+### チャレンジ課題（挑戦）
+
+7. **自分のCI/CD構成を「なぜこの構成にしたか」文章化** する。READMEに200字程度で記載：
+
+```
+例：GitHub Pages と Vercel の両方にデプロイしています。
+理由は、Vercel は PR プレビューが強力だが外部依存があり、
+GitHub Pages は遅いが GitHub だけで完結し長期的に安定するため、
+両者を併用することで学習価値と運用の安全性を両立しました。
+```
+
+→ **技術選定の言語化** は発表でも評価される要素。代替案と比較する形で書くと説得力が上がる。
+
+8. **本番環境で`localStorage`が意図通り動くか** を複数ブラウザ（Chrome/Firefox/Edge）で確認。**データの独立性**（ブラウザごとに別管理）を実演できるようにしておく
+
+9. **監視** の第一歩：Vercel のログ／Analytics、または Sentry（無料枠）を導入して、**本番でエラーが出たら気付ける状態** を作る

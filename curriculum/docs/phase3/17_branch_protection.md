@@ -7,13 +7,13 @@
 | 前提コマ | コマ16 CI：テストの自動化 |
 | 次コマ | コマ18 Secrets管理 |
 
-## 🎯 目標
+##  目標
 
 - ブランチ保護ルールの目的を説明できる
 - main ブランチに「CI通過必須」「PR必須」のルールを設定できる
 - CODEOWNERS を使ってレビュー担当を自動割り当てできる
 
-## 📋 導入（15分）
+##  導入（15分）
 
 ### 前回の振り返り
 
@@ -37,7 +37,7 @@ mainブランチなど重要ブランチに対して、
 2. わざとCI失敗のPRを作ってマージできないことを確認
 3. CODEOWNERS でレビュワー自動割り当て
 
-## 🛠 本題（65分）
+##  本題（65分）
 
 ### 1. GitHubリポジトリでブランチ保護を設定（15分）
 
@@ -58,13 +58,13 @@ gh repo view --web
 2. **Enforcement status：** `Active`
 3. **Target branches：** Include default branch（＝main）
 4. **Branch protections：**
-   - ✅ **Restrict deletions**（削除禁止）
-   - ✅ **Require a pull request before merging**（PR必須）
+   -  **Restrict deletions**（削除禁止）
+   -  **Require a pull request before merging**（PR必須）
      - Required approvals: `1`（最低1承認）
-     - ✅ Dismiss stale pull request approvals when new commits are pushed
-   - ✅ **Require status checks to pass**
+     -  Dismiss stale pull request approvals when new commits are pushed
+   -  **Require status checks to pass**
      - Add checks: `lint` と `test` を追加
-   - ✅ **Block force pushes**（強制push禁止）
+   -  **Block force pushes**（強制push禁止）
 
 **Create** で確定。
 
@@ -200,7 +200,7 @@ gh pr edit 番号 --add-reviewer 隣のユーザー名
 
 Approve が付いたら元のPRをマージ。
 
-## ✅ まとめ（10分）
+##  まとめ（10分）
 
 ### 今日できるようになったこと
 
@@ -218,7 +218,33 @@ Approve が付いたら元のPRをマージ。
 
 Phase 3ラスト。APIキーやパスワードをCIに渡す **Secrets** の扱い方を学ぶ。本来ソースに書きたくない情報の安全な渡し方。
 
-## 📝 課題
+##  課題
+
+### 基礎課題（必須）
 
 1. 自分のリポジトリで、**`docs/**` ディレクトリ** の変更はドキュメント担当（自分）自動アサイン、**`src/**`** は開発担当（自分）という設定を CODEOWNERS に追加する
 2. 今までのPRで「CI Fail → 修正 → 再push → CI Pass → マージ」の流れを1度ちゃんと体験する
+
+### 応用課題（推奨）
+
+3. Ruleset に **「Force push を禁止」** を追加する。`git push --force` を試して、実際にブロックされることを確認。ブロックされた時のエラーメッセージを読んでおく
+
+```bash
+git commit --amend -m "テスト用に履歴書き換え"
+git push --force origin feature/test-force   # ← ブロックされる
+```
+
+4. **Draft PR** を作ってみる。Draft中はCIは走るが、レビュー要求はしない・マージボタンはグレーアウト。**Ready for review** ボタンで正式PRに昇格。実務で「まだ相談段階」のコードを共有する時によく使うパターン
+
+> **狙い：** ブランチ保護は「守りを強くする」のが目的。でも守りすぎるとチームが回らない。**保護と機動性のバランス** を肌で感じる。
+
+### チャレンジ課題（挑戦）
+
+5. **「管理者も bypass できないモード」** にすると何が困るかを机上で考えて、2〜3行でメモする：
+   - ケース：本番が落ちていて、mainに直接hotfixを入れたい
+   - ルール通りならPR→レビュー→マージ、でも時間がない
+   - どんな例外運用を用意すべきか？
+
+→ **運用設計** の観点。「ルール」と「例外」をどう両立させるかは実務で何度も考える。
+
+6. GitHub の **「Required linear history」** オプションを調べる。Merge commit を禁止して rebase のみにする設定。**履歴のきれいさ vs マージのしやすさ** のトレードオフを自分の言葉でまとめる
