@@ -218,7 +218,7 @@ jobs:
 **焦らず順番に：**
 
 1. **まずそのキーを無効化／再発行**（元を絶つ）
-2. gitの履歴から削除：`git filter-repo` か BFG Repo-Cleaner（講師に要相談）
+2. gitの履歴から削除：`git filter-repo` か BFG Repo-Cleaner（事前に手順と影響範囲を公式ドキュメントで確認してから実行）
 3. Secretsとして改めて登録
 4. 可能ならリポジトリ閲覧制限
 

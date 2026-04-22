@@ -71,7 +71,7 @@ GitHub Actions の設定ファイルは **YAML**。まずYAMLの書式を読め�
 **キー・バリュー：**
 
 ```yaml
-name: 授業用ワークフロー
+name: サンプルワークフロー
 runs-on: ubuntu-latest
 ```
 
