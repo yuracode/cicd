@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |------|------|
 | フェーズ | Phase 3 |
-| 所要時間 | 90分 |
+| 所要時間 |  |
 | 前提コマ | コマ14 初めてのワークフロー |
 | 次コマ | コマ16 CI：テストの自動化 |
 
@@ -13,7 +13,7 @@
 - ローカルで `npm run lint` が動く状態にできる
 - GitHub Actions で PR 時に Lint を自動実行できる
 
-##  導入（15分）
+##  導入
 
 ### 前回の振り返り
 
@@ -43,9 +43,9 @@ Actions が動くようになった。今日からは実用のCI構築。
 
 `npm create vite` で React テンプレを作ると、**デフォルトで ESLint 設定済み**。`eslint.config.js` がプロジェクト直下にある。今回はそれを活用しつつ Prettier を追加する。
 
-##  本題（65分）
+##  本題
 
-### 1. 既存のESLint設定を確認（10分）
+### 1. 既存のESLint設定を確認
 
 ```bash
 cd ~/workspace/todo-app
@@ -76,7 +76,7 @@ npm run lint
 
 何も出なければ綺麗な状態。もし警告が出たら修正する。
 
-### 2. Prettier を追加（15分）
+### 2. Prettier を追加
 
 ```bash
 npm install -D prettier eslint-config-prettier
@@ -149,7 +149,7 @@ npm run lint
 npm run format:check
 ```
 
-### 3. わざと違反を作って検知させる（10分）
+### 3. わざと違反を作って検知させる
 
 `src/App.jsx` をわざと汚す：
 
@@ -175,7 +175,7 @@ npm run format
 
 未使用変数は ESLint 単独では自動削除しないので手で消す。
 
-### 4. Lintワークフローを作る（15分）
+### 4. Lintワークフローを作る
 
 `.github/workflows/lint.yml` を新規作成：
 
@@ -216,7 +216,7 @@ jobs:
 - **`cache: 'npm'`**：Node.jsセットアップ時に `node_modules` 相当をキャッシュ。2回目以降高速化
 - **`node-version: '24'`**：ローカルと合わせる（Node 24）
 
-### 5. push してCIを確認（10分）
+### 5. push してCIを確認
 
 ```bash
 git add .
@@ -236,7 +236,7 @@ EOF
 
 PR画面で「Checks」が緑になるか確認。
 
-### 6. わざと壊したPRで赤を見る（5分）
+### 6. わざと壊したPRで赤を見る
 
 別ブランチで：
 
@@ -260,7 +260,7 @@ git switch main
 git branch -D feature/try-break-lint
 ```
 
-### 7. 仕上げとマージ（5分）
+### 7. 仕上げとマージ
 
 最初のPR（`feature/ci-lint`）をマージして完了。
 
@@ -273,7 +273,7 @@ git pull origin main
 
 > **`--squash`**：複数コミットを1つにまとめてマージ（履歴がきれい）
 
-##  まとめ（10分）
+##  まとめ
 
 ### 今日できるようになったこと
 

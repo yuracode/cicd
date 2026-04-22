@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |------|------|
 | フェーズ | Phase 3 |
-| 所要時間 | 90分 |
+| 所要時間 |  |
 | 前提コマ | コマ17 ブランチ保護ルール |
 | 次コマ | コマ19 デプロイ先選定 |
 
@@ -13,7 +13,7 @@
 - GitHub Secrets に値を登録し、ワークフローから安全に参照できる
 - 本番／開発環境を Environments で分けて管理できる
 
-##  導入（15分）
+##  導入
 
 ### よくある事故
 
@@ -39,9 +39,9 @@
 2. GitHub Actions は **Secrets** で渡す
 3. 本番と開発で **Environments** を分ける
 
-##  本題（65分）
+##  本題
 
-### 1. ローカル：.env と .gitignore（10分）
+### 1. ローカル：.env と .gitignore
 
 Viteは `.env` ファイルを自動で読んでくれる。
 
@@ -95,7 +95,7 @@ git add .env.example src/ApiSample.jsx
 git commit -m "feat: 環境変数 VITE_API_URL でAPI基盤を切り替え可能に"
 ```
 
-### 2. GitHub Secrets に登録（15分）
+### 2. GitHub Secrets に登録
 
 GitHubリポジトリで：
 
@@ -121,7 +121,7 @@ gh secret set API_KEY
 # プロンプトで値を入力
 ```
 
-### 3. ワークフローで Secrets を使う（15分）
+### 3. ワークフローで Secrets を使う
 
 `.github/workflows/ci.yml` を編集（例：テスト実行時に環境変数として渡す）：
 
@@ -150,7 +150,7 @@ gh secret set API_KEY
 
 > **文字そのものはログに出ない** よう自動でマスキングされる。長さだけ確認するのは安全なデバッグ手段。
 
-### 4. push して動作確認（5分）
+### 4. push して動作確認
 
 ```bash
 git add .github/workflows/ci.yml
@@ -161,7 +161,7 @@ gh pr create --title "Secrets を使ったCI" --body "API_KEY を Secrets 経由
 
 PR → Checks → テストジョブのログで「長さ: N」が出ればOK。
 
-### 5. Environments で本番・開発を分ける（15分）
+### 5. Environments で本番・開発を分ける
 
 プロジェクトが大きくなると「開発用キー」「本番用キー」を分けたくなる。
 
@@ -202,7 +202,7 @@ jobs:
 
 > **Environment ごとに同じ名前の `API_KEY`** を登録しておけば、ジョブの `environment:` 指定だけで値が切り替わる。
 
-### 6. よくある秘密情報の分類とおすすめ管理方法（5分）
+### 6. よくある秘密情報の分類とおすすめ管理方法
 
 | 情報の種類 | 管理場所 |
 |-----------|---------|
@@ -213,7 +213,7 @@ jobs:
 
 > **Variables と Secrets の違い：** Variablesは **ログに普通に出る**。公開して問題ない値（API URL、環境名等）はこちら。
 
-### 7. 万一 push してしまった時の対応（5分）
+### 7. 万一 push してしまった時の対応
 
 **焦らず順番に：**
 
@@ -224,7 +224,7 @@ jobs:
 
 > **重要：** git log を cleanしてもGitHubには残っていることがある。**無効化が最優先**。
 
-##  まとめ（10分）
+##  まとめ
 
 ### 今日できるようになったこと
 

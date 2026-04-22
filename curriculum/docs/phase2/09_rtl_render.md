@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |------|------|
 | フェーズ | Phase 2 |
-| 所要時間 | 90分 |
+| 所要時間 |  |
 | 前提コマ | コマ8 Vitest基礎（describe/it/expect） |
 | 次コマ | コマ10 React Testing Library②（ユーザー操作テスト） |
 
@@ -13,7 +13,7 @@
 - `render` / `screen.getByText` を使ってコンポーネントの表示を検証できる
 - props を変えた時に表示がどう変わるかをテストできる
 
-##  導入（15分）
+##  導入
 
 ### 前回の振り返り
 
@@ -36,9 +36,9 @@ Reactコンポーネントをテストするための事実上の標準ライブ
 
 をテストで自動確認できる状態にする。
 
-##  本題（65分）
+##  本題
 
-### 1. RTL と関連パッケージのインストール（10分）
+### 1. RTL と関連パッケージのインストール
 
 ```bash
 cd ~/workspace/todo-app
@@ -54,7 +54,7 @@ npm install -D @testing-library/react @testing-library/jest-dom @testing-library
 | `@testing-library/user-event` | クリック・入力などユーザー操作のシミュレート（次回） |
 | `jsdom` | Node上で動く仮想DOM（ブラウザが無くてもDOM操作できる） |
 
-### 2. Vitest の設定（10分）
+### 2. Vitest の設定
 
 `vite.config.js` を編集（`test` セクションを追加）：
 
@@ -87,7 +87,7 @@ import '@testing-library/jest-dom/vitest'
 
 これで `.toBeInTheDocument()` 等が使えるようになる。
 
-### 3. Greeting コンポーネントのテスト（15分）
+### 3. Greeting コンポーネントのテスト
 
 `src/Greeting.jsx` を作成：
 
@@ -131,7 +131,7 @@ npm run test
 
 2件PASSすればOK。
 
-### 4. クエリ関数の種類を整理（10分）
+### 4. クエリ関数の種類を整理
 
 RTLには要素を探す関数がたくさんあるが、基本の違いは**接頭辞**で決まる。
 
@@ -159,7 +159,7 @@ RTLには要素を探す関数がたくさんあるが、基本の違いは**接
 
 > **優先順位：** `ByRole` > `ByLabelText` > `ByText` > `ByTestId` の順で使う。`ByTestId` は最終手段。理由は「実際のユーザーが認識する手がかり」に近いほうがテストとして信頼できるから。
 
-### 5. TodoItem のテスト（15分）
+### 5. TodoItem のテスト
 
 `src/TodoItem.jsx` を少し拡張する（完了状態で打ち消し線）：
 
@@ -227,7 +227,7 @@ npm run test
 
 6件（Greeting 2件 + TodoItem 4件）PASSすれば完了。
 
-### 6. テストを壊して気付き（5分）
+### 6. テストを壊して気付き
 
 あえてコンポーネントを壊して、テストがちゃんとFAILするか確認する。
 
@@ -247,7 +247,7 @@ npm run test
 
 元に戻しておく。
 
-##  まとめ（10分）
+##  まとめ
 
 ### 今日できるようになったこと
 

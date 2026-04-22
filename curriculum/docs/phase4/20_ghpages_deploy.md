@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |------|------|
 | フェーズ | Phase 4 |
-| 所要時間 | 90分 |
+| 所要時間 |  |
 | 前提コマ | コマ19 デプロイ先選定 |
 | 次コマ | コマ21 Vercel連携・プレビューデプロイ |
 
@@ -13,7 +13,7 @@
 - GitHub Pages にデプロイするワークフローを書ける
 - main への push をトリガーに自動で本番URLが更新される状態にできる
 
-##  導入（15分）
+##  導入
 
 ### 前回の振り返り
 
@@ -33,9 +33,9 @@ GitHub Pages と Vercel の違いを比較した。今日は GitHub Pages を自
 https://ユーザー名.github.io/todo-app/
 ```
 
-##  本題（65分）
+##  本題
 
-### 1. リポジトリを public に（5分）
+### 1. リポジトリを public に
 
 GitHub Pages は **Free プランで public リポジトリのみ**（Pro/Team/Enterpriseなら private も可）。
 
@@ -46,7 +46,7 @@ gh repo edit --visibility public
 
 プロンプトで `y` を押して確定。
 
-### 2. Vite の base 設定（10分）
+### 2. Vite の base 設定
 
 ルート（`/`）ではなく `/todo-app/` に配信されるので、静的アセットのパスを合わせる。
 
@@ -80,7 +80,7 @@ npm run preview
 
 `http://localhost:4173/todo-app/` で表示されればOK。
 
-### 3. GitHub Pages の公開設定（10分）
+### 3. GitHub Pages の公開設定
 
 GitHub側での設定：
 
@@ -94,7 +94,7 @@ gh repo view --web
 
 > **旧来の方法「`gh-pages` ブランチから配信」はレガシー**。最近は GitHub Actions 経由が推奨。
 
-### 4. デプロイワークフローを作る（20分）
+### 4. デプロイワークフローを作る
 
 `.github/workflows/deploy-ghpages.yml` を新規作成：
 
@@ -160,7 +160,7 @@ jobs:
 > - **`actions/upload-pages-artifact`**：`dist/` をGitHub Pages用にパック
 > - **`actions/deploy-pages`**：実際の公開。成功すると `page_url` を出力
 
-### 5. テスト通過を前提にする（CIとの連携）（10分）
+### 5. テスト通過を前提にする（CIとの連携）
 
 「テストが通らない限りデプロイしない」ほうが安全。`build` ジョブの中でテストも走らせる：
 
@@ -183,7 +183,7 @@ jobs:
           path: dist
 ```
 
-### 6. push してデプロイ体験（10分）
+### 6. push してデプロイ体験
 
 ```bash
 git add .
@@ -212,14 +212,14 @@ https://ユーザー名.github.io/todo-app/
 
 ブラウザで開いてTODOアプリが動けば成功。
 
-### 7. 本番で localStorage が効くか確認（5分）
+### 7. 本番で localStorage が効くか確認
 
 - TODOを追加 → リロード → 残るか
 - ブラウザの開発者ツールで Network タブを見て、`/todo-app/assets/...` が全部200で読めているか
 
 404が出ていたら `base` 設定を見直す。
 
-### 8. トラブルシュートのコツ（5分）
+### 8. トラブルシュートのコツ
 
 | 症状 | 原因 |
 |------|------|
@@ -229,7 +229,7 @@ https://ユーザー名.github.io/todo-app/
 | デプロイが完了しない | リポジトリがprivate のまま / Pages Source設定忘れ |
 | URL開くと 404 | Pages設定が `GitHub Actions` になっているか確認 |
 
-##  まとめ（10分）
+##  まとめ
 
 ### 今日できるようになったこと
 
