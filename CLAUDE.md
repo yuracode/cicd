@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## リポジトリの概要
 
-専門学校ICT学科の授業「技術研究」で使う学習教材リポジトリ。React → テスト → GitHub Actions → CI/CD → デプロイ を全30コマで学ぶカリキュラムを、**1コマ1ファイルのMarkdown**（計30ファイル）として管理している。ソースコードやビルド・テストの仕組みは存在せず、成果物はMarkdownのみ。
+専門学校ICT学科の授業「技術研究」で使う学習教材リポジトリ。React → テスト → GitHub Actions → CI/CD → デプロイ を本編30コマ＋発展編6コマで学ぶカリキュラムを、**1コマ1ファイルのMarkdown**として管理している。教材本体はMarkdownだが、`implements/` 配下にのみ動くコード（発展編の参考実装）がある。
 
 - `curriculum/docs/phase1/`〜`phase5/`：各フェーズ6コマ、ファイル名は `NN_topic.md`（NNは全体の通し番号。例：phase2は `07_` から始まる）
+- `curriculum/docs/advanced/`：発展編6コマ（`aN_topic.md`、任意教材）
+- `implements/msw-pokedex/`：発展6（a6）の参考実装。Vite + React + Vitest + MSW の動くプロジェクト。**a6のMarkdownに載せたコードと中身を一致させたまま保つこと**（教材側を直したら実装側も直し、`npm run test` が全部PASSすることを確認する）
 - `claude.md`（小文字）：カリキュラム生成時に使った元の仕様書。カリキュラム全体構成表と対象学習者の前提が載っている
 - `README.md`：学習者向けの全体案内
 
@@ -49,6 +51,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 確認コマンド
 
 ```bash
-# 30ファイル揃っているか
+# 本編30＋発展編6の計36ファイル揃っているか
 find curriculum/docs -name "*.md" | wc -l
+
+# 参考実装のテストが通るか（implements/msw-pokedex を触ったとき）
+cd implements/msw-pokedex && npm run test
 ```
