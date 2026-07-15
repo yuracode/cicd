@@ -52,7 +52,7 @@
 cd ~/workspace/自分のアプリ名
 git switch main
 git pull origin main
-npm run dev
+npm run dev -- --host
 ```
 
 別ターミナルで：

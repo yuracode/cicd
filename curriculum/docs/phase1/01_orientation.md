@@ -148,7 +148,7 @@ cd hello-react
 npm install
 
 # 開発サーバ起動
-npm run dev
+npm run dev -- --host
 ```
 
 `http://localhost:5173` が表示されたらブラウザで開く。Reactのロゴが回っているページが見えれば成功。
@@ -178,7 +178,7 @@ export default App
 ### 今日できるようになったこと
 
 - WSL2 + Node.js 24 + Vite + React 19 の開発環境が整った
-- `npm run dev` で開発サーバが起動することを理解した
+- `npm run dev -- --host` で開発サーバが起動することを理解した
 
 ### よくある詰まりポイント
 

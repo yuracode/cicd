@@ -54,7 +54,7 @@ cd ~/workspace
 npm create vite@latest todo-app -- --template react
 cd todo-app
 npm install
-npm run dev
+npm run dev -- --host
 ```
 
 `src/App.jsx` の中身をまっさらにする（デフォルトのロゴ等は削除）。

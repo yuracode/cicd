@@ -21,7 +21,7 @@
 
 ```bash
 cd ~/workspace/hello-react
-npm run dev
+npm run dev -- --host
 ```
 
 ### 今日のゴール：「挨拶コンポーネント」と「カウンター」

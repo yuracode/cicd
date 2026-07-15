@@ -217,7 +217,7 @@ git push --force-with-lease
 ```bash
 git switch main
 git pull origin main
-npm run dev
+npm run dev -- --host
 ```
 
 **3機能すべてが動作する** かを自分で確認。Vercelプレビュー／GitHub Pages 本番URLでも確認。

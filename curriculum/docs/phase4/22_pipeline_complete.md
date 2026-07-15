@@ -236,7 +236,7 @@ React 19 + Vite で作った学習用TODOアプリ。
 
 \`\`\`bash
 npm install
-npm run dev       # 開発サーバ
+npm run dev -- --host       # 開発サーバ
 npm run test      # テスト（watchモード）
 npm run lint      # Lint
 npm run format    # 整形

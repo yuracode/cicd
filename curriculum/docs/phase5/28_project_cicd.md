@@ -253,7 +253,7 @@ https://your-app.vercel.app/
 
 \`\`\`bash
 npm install
-npm run dev
+npm run dev -- --host
 npm run test
 npm run lint
 npm run build
@@ -281,7 +281,7 @@ MIT
 
 ```bash
 # Vite 開発サーバで動かして
-npm run dev
+npm run dev -- --host
 ```
 
 Windows側でアプリ画面のスクリーンショット（`Win + Shift + S`）を撮り、`docs/screenshot.png` として保存。

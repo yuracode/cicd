@@ -64,7 +64,7 @@ useEffect(() => {
 
 ```bash
 cd ~/workspace/todo-app
-npm run dev
+npm run dev -- --host
 ```
 
 `App.jsx` の useState の初期値を「localStorage から読む」に変える。
