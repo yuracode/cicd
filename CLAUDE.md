@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## リポジトリの概要
 
-専門学校ICT学科の授業「技術研究」で使う学習教材リポジトリ。**Next.js（App Router）で React の初歩から学び直し → テスト → GitHub Actions → CI/CD → デプロイ** を、1コマ90分×本編30コマ＋発展編6コマで学ぶカリキュラムを、**1コマ1ファイルのMarkdown**として管理している。教材本体はMarkdownだが、`implements/` 配下にのみ動くコード（発展編の参考実装）がある。
+専門学校ICT学科の授業「技術研究」で使う学習教材リポジトリ。**Next.js（App Router）で React の初歩から学び直し → テスト → GitHub Actions → CI/CD → デプロイ** を、1コマ90分×本編30コマ＋発展編6コマで学ぶカリキュラムを、**1コマ1ファイルのMarkdown**として管理している。教材本体はMarkdownだが、`implements/` 配下にのみ動くコード（発展6の参考実装）がある。
 
 ### 構成（2026-09 に Vite 版から Next.js 版へ作り直し済み）
 
@@ -13,15 +13,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Phase 3（14〜19）GitHub Actions：概要とYAML / 初ワークフロー / lint+build / test / ルールセット / Secretsと環境変数（`NEXT_PUBLIC_`）
 - Phase 4（20〜25）CI/CD：デプロイ先比較 / Vercel / GitHub Pages（`output: 'export'`＋`basePath`＋`trailingSlash`）/ パイプライン完成 / トラブルシューティング / チーム開発
 - Phase 5（26〜30）個人制作（例：ポモドーロタイマー）：企画・設計と土台 / 実装 / テストとCI/CDの仕上げ / 発表準備 / 最終発表
-- **発展編（`advanced/`）と `implements/msw-pokedex/` は旧Vite版のまま**（前提コマの番号も旧番号）。書き直す場合は本編の規約に合わせる
+- 発展編（`advanced/`）：a1 TypeScript化 / a2 Tailwind v4 / a3 MSW（Jest＋ブラウザ）/ a4 Playwright E2E / a5 CI強化（ビルドキャッシュ・Composite Action・Dependabot）/ a6 MSW総合演習（ポケモン図鑑、独立した Next.js プロジェクト）。本編と同じ形式（90分・演習あり）
 
 ## ディレクトリ
 
 - `curriculum/docs/phase1/`〜`phase5/`：ファイル名は `NN_topic.md`（NNは全体の通し番号）
 - `curriculum/docs/advanced/`：発展編（`aN_topic.md`、任意教材）
-- `implements/msw-pokedex/`：発展6（a6）の参考実装（旧Vite版）。**a6のMarkdownに載せたコードと中身を一致させたまま保つこと**（教材側を直したら実装側も直し、`npm run test` が全部PASSすることを確認する）
-  - `src/mocks/handlers.js` を開発用（`browser.js`＝Service Worker）とテスト用（`server.js`＝Node）の両方が共有する構成。偽データは `src/mocks/fixtures/` に分離
-- `claude.md`（小文字）：カリキュラム生成時に使った元の仕様書。**`.gitignore` 対象のローカル専用ファイル**で、中身は旧Vite版前提。存在しない環境もある
+- `implements/msw-pokedex/`：発展6（a6）の参考実装（Next.js + Jest + MSW）。**a6のMarkdownに載せたコードと中身を完全に一致させたまま保つこと**（教材側を直したら実装側も直し、`npm ci && npm test && npm run lint && npm run build` が通ることを確認する。一致確認は a6 の ```js/```jsx/```css ブロックとファイル内容の比較で行う）
+  - `mocks/handlers.js` を開発用（`browser.js`＝Service Worker、`components/MswProvider.js` が `NEXT_PUBLIC_API_MOCKING=enabled` のときだけ起動）とテスト用（`server.js`＝Node、`jest.setup.js` で起動）が共有する。偽データは `mocks/fixtures/` に分離
+  - `npm run dev` がモック有効、`npm run dev:real` が本物の PokeAPI
+  - `next dev` が `AGENTS.md`・`CLAUDE.md` を自動生成するが、`.gitignore` で除外している
+- `claude.md`（小文字）：カリキュラム生成時に使った元の仕様書。**`.gitignore` 対象のローカル専用ファイル**で、中身は旧Vite版前提（現在の規約はこの CLAUDE.md が正）。存在しない環境もある
 - `README.md`：学習者向けの全体案内
 
 ## 教材ファイルの形式
@@ -71,6 +73,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   npm install -D jest jest-environment-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom @testing-library/user-event
   ```
   `jest.config.mjs` は `next/jest.js` の `createJestConfig` に `testEnvironment: 'jsdom'`、`setupFilesAfterEnv: ['<rootDir>/jest.setup.js']`、`moduleNameMapper: { '^@/(.*)$': '<rootDir>/$1' }` を渡す（`jest.mock('@/...')` の解決に moduleNameMapper が必須）。`jest.setup.js` は `import '@testing-library/jest-dom'` の1行。scripts は `"test": "jest"`, `"test:watch": "jest --watch"`, `"test:coverage": "jest --coverage"`（コマ13で `collectCoverageFrom` と `coverageThreshold` を追加し、`eslint.config.mjs` の globalIgnores に `coverage/**` を足す）
+- MSW を Jest で使うときは `testEnvironment: 'jest-fixed-jsdom'`（jsdom に fetch/Request がないため）と、scripts の `NODE_OPTIONS=--experimental-vm-modules`（MSW の依存に ESM 専用パッケージがあるため）が必須。`MswProvider` は StrictMode の二重実行対策で起動 Promise をモジュール変数で1つにまとめる
 - Next特有のテスト上の注意：`async` な Server Component は `render(<Page />)` では描画できない（`render(await Page())` なら単純なものは可。基本はデータ取得を関数に切り出して単体テスト、画面はE2E）。`next/navigation` は `jest.mock` する
 - localStorage を読む部品は `dynamic(() => import(...), { ssr: false })` のラッパー（`TodoAppClient.js`）経由で読み込む。`useEffect` 内で同期的に setState すると `react-hooks/set-state-in-effect` が **error** になるので、読み込みは `useState(loadTodos)` の遅延初期化で行う
 - 本編の TODO アプリの到達形（コマ5〜23）：`components/` に TodoApp / TodoAppClient / TodoForm / TodoList / TodoItem / Header / SampleLoader、`lib/` に todos.js（純粋関数）/ api.js（fetch）/ tips.js、`app/` に page / layout / about / tips（async Server Component）/ not-found、`lib/` に config.js（環境変数）/ nav.js（`isCurrentPath`：Pages の trailingSlash 対策）、`components/Footer.js`。`.github/workflows/ci.yml` は lint・test → build → pages-build → pages-deploy の1本
@@ -87,6 +90,6 @@ grep -l "所要時間 | 90分" curriculum/docs/phase*/*.md | wc -l
 # 教材のコードを検証するときは scratchpad 等に上記 create-next-app で作り、npm run build / npm run lint / npm test を通す
 # ワークフローの YAML は actionlint で検証する
 
-# 参考実装のテスト（implements/msw-pokedex を触ったとき）
-cd implements/msw-pokedex && npm run test
+# 参考実装の確認（implements/msw-pokedex を触ったとき）
+cd implements/msw-pokedex && npm ci && npm test && npm run lint && npm run build
 ```

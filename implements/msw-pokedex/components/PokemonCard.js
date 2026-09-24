@@ -1,4 +1,6 @@
-// src/pokedex/PokemonCard.jsx
+// components/PokemonCard.js
+import Image from 'next/image'
+
 const TYPE_LABELS = {
   normal: 'ノーマル',
   fire: 'ほのお',
@@ -34,11 +36,11 @@ function barWidth(value) {
   return `${Math.min((value / 150) * 100, 100)}%`
 }
 
-function PokemonCard({ pokemon }) {
+export default function PokemonCard({ pokemon }) {
   return (
     <article className="pokemon-card">
       <div className="artwork">
-        <img src={pokemon.imageUrl} alt={pokemon.name} />
+        <Image src={pokemon.imageUrl} alt={pokemon.name} width={240} height={240} />
       </div>
 
       <p className="dex-number">No.{String(pokemon.id).padStart(4, '0')}</p>
@@ -70,10 +72,7 @@ function PokemonCard({ pokemon }) {
           <li key={stat.name} className="stat-row">
             <span className="stat-name">{STAT_LABELS[stat.name] ?? stat.name}</span>
             <span className="stat-bar">
-              <span
-                className="stat-bar-fill"
-                style={{ width: barWidth(stat.value) }}
-              />
+              <span className="stat-bar-fill" style={{ width: barWidth(stat.value) }} />
             </span>
             <span className="stat-value">{stat.value}</span>
           </li>
@@ -84,5 +83,3 @@ function PokemonCard({ pokemon }) {
     </article>
   )
 }
-
-export default PokemonCard

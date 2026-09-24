@@ -3,43 +3,41 @@
 | 項目 | 内容 |
 |------|------|
 | フェーズ | 発展編（任意） |
-| 所要時間 |  |
+| 所要時間 | 90分 |
 | 前提コマ | 発展3 MSWでAPIモックを本格化する |
 | 次コマ | なし（発展編は興味のある順に取り組んでよい） |
 
 ##  目標
 
-- 複数のエンドポイントを持つ実在のWeb API（PokeAPI）を、MSWで丸ごと偽装できる
-- パスパラメータ（`:name`）を使って「URLごとに違う応答」を返すハンドラが書ける
-- 見た目を作り込んだAPI連携アプリを、本物のAPIに一度も接続せずに開発→テストまで通せる
+- 複数のエンドポイントを持つ実在の Web API（PokeAPI）を、MSW で丸ごと偽装できる
+- パスパラメータ（`:name`）を使って、URL ごとに違う応答を返すハンドラを書ける
+- 見た目まで作り込んだ API 連携アプリを、本物の API に一度も接続せずに、開発からテストまで通せる
 
 ##  導入
 
-### 発展3の先へ：総合演習
+### 発展3の先へ
 
-発展3では、URL1本のモックを作って成功／失敗を切り替えた。ただ、実務のAPI連携はもう少し複雑だ。
+発展3では、URL 1本のモックを作って、成功・失敗を切り替えた。実際の API 連携は、もう少し複雑になる。
 
-- エンドポイントが**複数**ある（一覧用、詳細用、…）
-- 同じエンドポイントでも**URLのパラメータによって応答が変わる**（`/pokemon/pikachu` と `/pokemon/charizard`）
-- 1画面を作るのに**APIを2回以上呼ぶ**ことがある
+- エンドポイント（API の URL）が **複数** ある
+- 同じエンドポイントでも、**URL のパラメータによって応答が変わる**（`/pokemon/pikachu` と `/pokemon/charizard`）
+- 1つの画面を作るのに、**API を2回以上呼ぶ** ことがある
 
-今日はこれを全部盛り込んだ「ポケモン図鑑アプリ」を作る。題材は **PokeAPI** という実在の公開APIだ。
+今日は、これを全部含んだ「ポケモン図鑑アプリ」を、**新しい Next.js のプロジェクト** として1から作る。題材は **PokeAPI** という実在の公開 API。
 
-> **PokeAPIとは**：ポケモンのデータ（名前・タイプ・種族値など）をJSONで返してくれる、登録不要・無料の公開API（ファンコミュニティ運営）。ブラウザで `https://pokeapi.co/api/v2/pokemon/pikachu` を開くと、実際のJSONが見られる。
+> **PokeAPI とは**：ポケモンのデータ（名前・タイプ・種族値など）を JSON で返してくれる、登録不要・無料の公開 API（ファンのコミュニティが運営）。ブラウザで `https://pokeapi.co/api/v2/pokemon/pikachu` を開くと、実際の JSON が見られる。
 
-### 本物のAPIがあるのに、なぜモックで作るのか
+### 本物の API があるのに、なぜモックで作るのか
 
-「本物があるなら本物につなげばいいのでは？」と思うかもしれない。でも実務ではこう考える。
+- **相手に迷惑をかけない**：開発中は保存のたびに画面が更新され、そのたびに API を呼ぶことになる。PokeAPI は善意で運営されていて、節度ある利用（フェアユース）を求めている。モックなら何万回呼んでも負荷はゼロ
+- **テストが安定する**：本物に依存したテストは、相手が止まったら一緒に落ちる（コマ12）
+- **ネットがなくても進む**：教室の Wi-Fi が不調でも、開発は止まらない
 
-- **相手に迷惑をかけない**：PokeAPIは善意で運営されている。開発中は保存のたびに画面がリロードされ、そのたびAPIを叩くことになる。モックなら何万回叩いてもゼロ負荷（PokeAPI自身もフェアユース＝節度ある利用を求めている）
-- **テストが安定する**：本物に依存したテストは、相手が落ちたら一緒に落ちる（コマ11でやった話）
-- **ネットワークがなくても進む**：教室のWi-Fiが不調でも開発は止まらない
-
-つまり今日やるのは「**本物のAPIの仕様をそっくり偽装して、本物なしで開発を完走する**」という、モックファースト開発の実践だ。
+今日やるのは、**本物の API の仕様をそっくりまねた偽物を作り、本物なしで開発を最後まで進める**（モックファースト開発）こと。
 
 ### 完成イメージ
 
-検索フォームに名前を入れると、図鑑カードが表示される。
+検索フォームに名前（または図鑑番号）を入れると、図鑑のカードが表示される。
 
 ```text
 ┌─────────────────────────┐
@@ -57,56 +55,120 @@
 └─────────────────────────┘
 ```
 
-裏側の通信はこうなっている。**アプリは本物のPokeAPIを呼んでいるつもり**で、MSWが全部横取りする。
+裏側の通信はこうなっている。**アプリは本物の PokeAPI を呼んでいるつもり** で、MSW が全部横取りする。
 
 ```text
 検索 "pikachu"
   → fetch /api/v2/pokemon/pikachu        ┐
-  → fetch /api/v2/pokemon-species/25     ┤← MSWが横取りして偽データを返す
+  → fetch /api/v2/pokemon-species/25     ┤← MSW が横取りして偽のデータを返す
 図鑑カードを表示                           ┘
 ```
 
 ##  本題
 
-発展3を終えた `todo-app`（`src/mocks/` がある状態）で進める。
-
-### 1. ブランチを切って、完成形を把握する
+### 1. プロジェクトを作り、完成形を把握する
 
 ```bash
-cd ~/workspace/todo-app
-git switch main
-git pull origin main
-git switch -c feature/pokedex
+cd ~/workspace
+npx create-next-app@latest pokedex --js --eslint --app --no-tailwind --no-src-dir --no-react-compiler --import-alias "@/*" --use-npm --yes
+cd pokedex
+rm app/page.module.css
+mkdir -p components lib mocks/fixtures
+
+npm install -D jest jest-fixed-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom @testing-library/user-event msw prettier
+npx msw init public --save
 ```
 
-今日作るファイルは6つ。役割分担を先に頭に入れておくと迷わない。
+今日作るファイルと、それぞれの役割を先に頭に入れておく。
 
 ```text
-src/
-  mocks/
-    fixtures/
-      pokemon.js      # 偽データ本体（PokeAPIの応答の抜粋）
-    handlers.js       # ハンドラ追加（どのURLに何を返すか）
-  pokedex/
-    pokeApi.js        # API呼び出し＋データ整形
-    Pokedex.jsx       # 検索フォームと状態管理
-    PokemonCard.jsx   # 図鑑カードの表示
-    pokedex.css       # 見た目
-    Pokedex.test.jsx  # MSWを使ったテスト
+app/
+  layout.js           # MswProvider で全体を包む
+  page.js             # Pokedex を表示
+components/
+  MswProvider.js      # 開発中だけブラウザで MSW を起動してから描く
+  Pokedex.js          # 検索フォームと状態の管理（'use client'）
+  PokemonCard.js      # 図鑑カードの表示
+  pokedex.css         # 見た目
+  Pokedex.test.js     # MSW を使ったテスト
+lib/
+  pokeApi.js          # API の呼び出し＋データの整形
+mocks/
+  fixtures/
+    pokemon.js        # 偽のデータ本体（PokeAPI の応答の抜粋）
+  handlers.js         # どの URL に何を返すか（開発とテストで共有）
+  browser.js          # 開発用（Service Worker）
+  server.js           # テスト用（Node.js）
 ```
 
-> **参考実装**：このコマの完成形が、教材リポジトリの `implements/msw-pokedex/` に動く状態で置いてある。詰まったら自分のコードと見比べよう（先に写すのではなく、まず自分で打つこと）。
+> **参考実装**：完成形が、教材リポジトリの `implements/msw-pokedex/` に動く状態で置いてある。詰まったら自分のコードと見比べよう（先に写すのではなく、まず自分で打つこと）。
 
-### 2. フィクスチャ：偽データを別ファイルに切り出す
+### 2. テストとモックの土台を用意する
 
-まず偽データから作る。発展3ではハンドラの中に直接データを書いたが、今回はデータが大きいので **フィクスチャ** として別ファイルに分ける。
+発展3と同じ設定をする。
 
-> **フィクスチャ（fixture）とは**：テストやモックで使う「決まったサンプルデータ」のこと。ハンドラ（ロジック）とデータを分けておくと、データを増やすときにハンドラを触らずに済む。
+```js
+import nextJest from 'next/jest.js'
 
-データの形は**本物のPokeAPIの応答に合わせる**のがポイント。形が本物と違うと「モックでは動くのに本物では動かない」アプリができてしまう。ブラウザで実物のJSONを一度見てから写すのが理想だ（ここでは使う項目だけ抜粋し、説明文は教材用に簡略化してある）。
+const createJestConfig = nextJest({
+  dir: './',
+})
 
-```javascript
-// src/mocks/fixtures/pokemon.js
+const config = {
+  // jsdom に fetch / Request / Response を足した環境（MSW を Jest で使うため）
+  testEnvironment: 'jest-fixed-jsdom',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/$1',
+  },
+}
+
+export default createJestConfig(config)
+```
+
+```js
+import '@testing-library/jest-dom'
+import { server } from '@/mocks/server'
+
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' })) // 全テスト開始前：横取り開始
+afterEach(() => server.resetHandlers()) // 各テスト後：ハンドラを初期状態に戻す
+afterAll(() => server.close()) // 全テスト終了後：横取り解除
+```
+
+```js
+// mocks/server.js（テスト用：Node の中で通信を横取りする）
+import { setupServer } from 'msw/node'
+import { handlers } from './handlers'
+
+export const server = setupServer(...handlers)
+```
+
+```js
+// mocks/browser.js（開発用：ブラウザの Service Worker で通信を横取りする）
+import { setupWorker } from 'msw/browser'
+import { handlers } from './handlers'
+
+export const worker = setupWorker(...handlers)
+```
+
+`package.json` のコマンドを設定する。`npm run dev` は **最初からモックを有効にして** 起動するようにし、本物の API で確かめたいときだけ `npm run dev:real` を使う。
+
+```bash
+npm pkg set scripts.dev="NEXT_PUBLIC_API_MOCKING=enabled next dev" scripts.dev:real="next dev" scripts.lint="eslint --max-warnings=0" scripts.test="NODE_OPTIONS=--experimental-vm-modules jest" scripts.test:watch="NODE_OPTIONS=--experimental-vm-modules jest --watch" scripts.format="prettier --write ." scripts.format:check="prettier --check ."
+```
+
+`eslint.config.mjs` の `globalIgnores` に `"public/mockServiceWorker.js"` を足し、`.prettierrc`・`.prettierignore` を `todo-app` と同じように用意する（`.prettierignore` には `public/mockServiceWorker.js` も書く）。
+
+### 3. フィクスチャ：偽のデータを別ファイルに分ける
+
+発展3ではハンドラの中に直接データを書いたが、今回はデータが大きいので **フィクスチャ** として別のファイルに分ける。
+
+> **フィクスチャ（fixture）とは**：テストやモックで使う「決まったサンプルデータ」。ハンドラ（ロジック）とデータを分けておくと、データを増やすときにハンドラを触らずに済む。
+
+データの形は **本物の PokeAPI の応答に合わせる** のがポイント。形が本物と違うと、「モックでは動くのに本物では動かない」アプリができてしまう。ブラウザで本物の JSON を一度見てから写すのが理想（ここでは使う項目だけを抜き出し、説明文は教材用に短くしてある）。
+
+```js
+// mocks/fixtures/pokemon.js
 // PokeAPI（https://pokeapi.co）の応答から、この教材で使う項目だけを抜粋した偽データ
 
 export const pokemonData = {
@@ -168,8 +230,7 @@ export const speciesData = {
     flavor_text_entries: [
       {
         language: { name: 'ja' },
-        flavor_text:
-          'ほっぺの　でんきぶくろに　でんきを　ためる。おこると　ほうでんする。',
+        flavor_text: 'ほっぺの　でんきぶくろに　でんきを　ためる。おこると　ほうでんする。',
       },
     ],
   },
@@ -179,40 +240,33 @@ export const speciesData = {
     flavor_text_entries: [
       {
         language: { name: 'ja' },
-        flavor_text:
-          'くちから　しゃくねつの　ほのおを　はく。たたかいの　けいけんを　つむほど　ほのおは　あつくなる。',
+        flavor_text: 'くちから　しゃくねつの　ほのおを　はく。たたかいの　けいけんを　つむほど　ほのおは　あつくなる。',
       },
     ],
   },
 }
 ```
 
-`pokemonData` と `speciesData` が分かれているのは、**本物のPokeAPIがそういう設計**だから。基本データは `/pokemon/名前`、日本語名や説明文は `/pokemon-species/番号` と、2つのエンドポイントに分かれている。
+本物の API の単位にも合わせている点に注意。`height: 4` は 0.1m 単位（= 0.4m）、`weight: 60` は 0.1kg 単位（= 6kg）。
 
-### 3. ハンドラ：パスパラメータでURLごとに応答を変える
+### 4. ハンドラ：URL のパラメータで応答を変える
 
-`src/mocks/handlers.js` を書き換える。発展3で作ったTODOのハンドラはそのまま残し、ポケモン用を2本追加する。
-
-```javascript
-// src/mocks/handlers.js
-import { http, HttpResponse } from 'msw'
+```js
+// mocks/handlers.js
+import { http, HttpResponse, delay } from 'msw'
 import { pokemonData, speciesData } from './fixtures/pokemon'
 
 export const handlers = [
-  // 発展3で作ったTODO APIのモック（そのまま残す）
-  http.get('https://jsonplaceholder.typicode.com/todos', () => {
-    return HttpResponse.json([
-      { id: 1, title: 'MSWで返したTODO', completed: false },
-      { id: 2, title: '2件目', completed: true },
-    ])
-  }),
-
   // ポケモンの基本データ（タイプ・種族値・画像など）
   // 本物のPokeAPIは名前でも図鑑番号でも引けるので、モックも同じ仕様にする
-  http.get('https://pokeapi.co/api/v2/pokemon/:name', ({ params }) => {
-    const pokemon =
-      pokemonData[params.name] ??
-      Object.values(pokemonData).find((p) => p.id === Number(params.name))
+  http.get('https://pokeapi.co/api/v2/pokemon/:name', async ({ params }) => {
+    // ローディング表示をゆっくり観察するための擬似ディレイ。
+    // テスト（NODE_ENV === 'test'）で3秒待つと findBy〜 が先にあきらめて
+    // テストが落ちるので、テストでは待たない
+    if (process.env.NODE_ENV !== 'test') {
+      await delay(3000)
+    }
+    const pokemon = pokemonData[params.name] ?? Object.values(pokemonData).find((p) => p.id === Number(params.name))
     if (!pokemon) {
       return new HttpResponse(null, { status: 404 })
     }
@@ -230,18 +284,19 @@ export const handlers = [
 ]
 ```
 
-発展3からの進化ポイントが2つある。
+| 書き方 | 意味 |
+|--------|------|
+| `/pokemon/:name` | `:name` の部分に何が来ても一致する（**パスパラメータ**）。中身は `params.name` で取り出せる |
+| `pokemonData[params.name] ?? ...find(...)` | 名前で探し、なければ図鑑番号で探す。本物の PokeAPI と同じく `/pokemon/25` でも引けるようにしている |
+| `new HttpResponse(null, { status: 404 })` | 見つからなければ 404。**本物と同じステータスコード** を返すことで、アプリのエラー処理も本物どおりに確かめられる |
+| `process.env.NODE_ENV !== 'test'` | ブラウザでは3秒待って「さがしています…」を観察できるようにし、テストでは待たない（発展3の演習3） |
 
-> **パスパラメータ `:name`**：URLの `:name` の部分は「何が来てもマッチする」プレースホルダで、実際に来た値は `params.name` で取り出せる。`/pokemon/pikachu` なら `params.name` は `"pikachu"`、`/pokemon/25` なら `"25"`。本物のPokeAPIは名前でも図鑑番号でも引けるので、名前で見つからなければ `Number(params.name)` を `id` と突き合わせる2段構えにして、モックの仕様を本物に合わせている。
+### 5. API 層：呼び出しと整形を1つの関数にまとめる
 
-- **404を自分で設計している**：フィクスチャにない名前が来たら404を返す。つまり「存在しない名前で検索したときのテスト」に、`server.use()` の上書きすら不要になる。本物のPokeAPIも未知の名前には404を返すので、挙動が本物と揃う
+画面の部品から直接 `fetch` を呼ぶのではなく、**API を呼んで、画面で使いやすい形に整える** 関数を `lib/` に作る。
 
-### 4. API層：呼び出しと整形を1つの関数にまとめる
-
-次に、コンポーネントから通信の詳細を追い出す。「2回fetchして、画面で使いやすい形に整形して返す」関数を作る。
-
-```javascript
-// src/pokedex/pokeApi.js
+```js
+// lib/pokeApi.js
 const BASE_URL = 'https://pokeapi.co/api/v2'
 
 // 2つのエンドポイントを呼び、画面で使いやすい1つのオブジェクトに整形して返す
@@ -260,9 +315,7 @@ export async function fetchPokemon(nameOrId) {
 
   const jaName = species.names.find((n) => n.language.name === 'ja')
   const jaGenus = species.genera.find((g) => g.language.name === 'ja')
-  const jaFlavor = species.flavor_text_entries.find(
-    (f) => f.language.name === 'ja',
-  )
+  const jaFlavor = species.flavor_text_entries.find((f) => f.language.name === 'ja')
 
   return {
     id: pokemon.id,
@@ -283,24 +336,24 @@ export async function fetchPokemon(nameOrId) {
 }
 ```
 
-なぜ整形をここでやるのか。
+- 基本データ（`/pokemon/...`）には日本語名がないので、**2回目の通信**（`/pokemon-species/...`）で日本語名・分類・説明文を取ってくる
+- 404 のときは `NOT_FOUND`、それ以外の失敗は `SERVER_ERROR` という **エラーの種類** を投げる。画面側は、この種類でメッセージを変える
+- 画面の部品は、PokeAPI の複雑な JSON の形を知らなくてよい。**API の形が変わっても、直すのはこの関数だけ** で済む
 
-- **コンポーネントが薄くなる**：`pokemon.sprites.other['official-artwork'].front_default` のような深いネストをJSXに書かずに済む
-- **エラーの種類を先に分類**：「見つからない（404）」と「サーバ側の異常」を別のエラーとして投げ分けておくと、画面側はメッセージの出し分けに専念できる
-- **APIの都合をここで吸収**：単位換算（0.1m→m）や改行除去のような「APIの生データの癖」への対処が1か所に集まる
+### 6. 画面：検索フォームと図鑑カード
 
-### 5. 画面：検索フォームと図鑑カード
-
-状態管理と検索フォームを持つ `Pokedex` と、表示専用の `PokemonCard` に分ける（コマ3でやった「容器と見た目の分離」）。
+検索フォームと状態の管理。
 
 ```jsx
-// src/pokedex/Pokedex.jsx
+'use client'
+
+// components/Pokedex.js
 import { useState } from 'react'
-import { fetchPokemon } from './pokeApi'
+import { fetchPokemon } from '@/lib/pokeApi'
 import PokemonCard from './PokemonCard'
 import './pokedex.css'
 
-function Pokedex() {
+export default function Pokedex() {
   const [input, setInput] = useState('')
   // idle（初期）→ loading → success か error、の4状態を1つのstateで持つ
   const [status, setStatus] = useState('idle')
@@ -350,19 +403,16 @@ function Pokedex() {
     </div>
   )
 }
-
-export default Pokedex
 ```
 
-設計の意図を2つだけ。
+状態を `'idle'`（最初）→ `'loading'` → `'success'` か `'error'` の **4つの状態を1つの state** で持っている（コマ12の `SampleLoader` と同じ考え方）。
 
-- **`loading` と `error` を別々の `useState(true/false)` にしない**：「loadingがtrueのままerrorもtrue」のような矛盾状態が構造的に起きなくなる。状態が増えてきたら「とりうる状態を1つの値で列挙する」のが定石
-- **`role="alert"`**：エラー表示に付けておくと、スクリーンリーダーが即座に読み上げる。さらに後でテストからも「エラー通知」として意味で取得できる
-
-続いて図鑑カード。タイプ名と種族値は英語で届くので、表示用の対訳表をコンポーネント内に持つ。
+図鑑カード。
 
 ```jsx
-// src/pokedex/PokemonCard.jsx
+// components/PokemonCard.js
+import Image from 'next/image'
+
 const TYPE_LABELS = {
   normal: 'ノーマル',
   fire: 'ほのお',
@@ -398,11 +448,11 @@ function barWidth(value) {
   return `${Math.min((value / 150) * 100, 100)}%`
 }
 
-function PokemonCard({ pokemon }) {
+export default function PokemonCard({ pokemon }) {
   return (
     <article className="pokemon-card">
       <div className="artwork">
-        <img src={pokemon.imageUrl} alt={pokemon.name} />
+        <Image src={pokemon.imageUrl} alt={pokemon.name} width={240} height={240} />
       </div>
 
       <p className="dex-number">No.{String(pokemon.id).padStart(4, '0')}</p>
@@ -434,10 +484,7 @@ function PokemonCard({ pokemon }) {
           <li key={stat.name} className="stat-row">
             <span className="stat-name">{STAT_LABELS[stat.name] ?? stat.name}</span>
             <span className="stat-bar">
-              <span
-                className="stat-bar-fill"
-                style={{ width: barWidth(stat.value) }}
-              />
+              <span className="stat-bar-fill" style={{ width: barWidth(stat.value) }} />
             </span>
             <span className="stat-value">{stat.value}</span>
           </li>
@@ -448,18 +495,27 @@ function PokemonCard({ pokemon }) {
     </article>
   )
 }
-
-export default PokemonCard
 ```
 
-`TYPE_LABELS[type] ?? type` としているのは保険。対訳表にないタイプが来ても、英語のまま表示されて画面は壊れない（`??` は「左がnull/undefinedなら右」の演算子）。
+- **`next/image` の `<Image>`**：公式アートワークの画像を表示する。外部の URL の画像を `next/image` で使うには、`next.config.mjs` で **読み込んでよい場所** を許可する必要がある
+- **種族値のバー**：`style={{ width: ... }}` で、値に応じて幅を変えている。**値によって変わるスタイル** は、クラスではなく style で書く
 
-### 6. 見た目を整えて、ブラウザで動かす
+```js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  images: {
+    // 公式アートワークの画像は GitHub 上にあるので、読み込みを許可する
+    remotePatterns: [new URL('https://raw.githubusercontent.com/PokeAPI/sprites/**')],
+  },
+}
 
-CSSを書く。図鑑らしい赤いボディに白いカード、タイプごとの定番カラーのバッジ、種族値のバーまで作り込む。
+export default nextConfig
+```
+
+### 7. 見た目を整えて、ブラウザで動かす
 
 ```css
-/* src/pokedex/pokedex.css */
+/* components/pokedex.css */
 .pokedex {
   max-width: 420px;
   margin: 24px auto;
@@ -584,24 +640,60 @@ CSSを書く。図鑑らしい赤いボディに白いカード、タイプご�
 }
 
 /* タイプ別の定番カラー */
-.type-normal { background: #a8a878; }
-.type-fire { background: #f08030; }
-.type-water { background: #6890f0; }
-.type-electric { background: #f8d030; }
-.type-grass { background: #78c850; }
-.type-ice { background: #98d8d8; }
-.type-fighting { background: #c03028; }
-.type-poison { background: #a040a0; }
-.type-ground { background: #e0c068; }
-.type-flying { background: #a890f0; }
-.type-psychic { background: #f85888; }
-.type-bug { background: #a8b820; }
-.type-rock { background: #b8a038; }
-.type-ghost { background: #705898; }
-.type-dragon { background: #7038f8; }
-.type-dark { background: #705848; }
-.type-steel { background: #b8b8d0; }
-.type-fairy { background: #ee99ac; }
+.type-normal {
+  background: #a8a878;
+}
+.type-fire {
+  background: #f08030;
+}
+.type-water {
+  background: #6890f0;
+}
+.type-electric {
+  background: #f8d030;
+}
+.type-grass {
+  background: #78c850;
+}
+.type-ice {
+  background: #98d8d8;
+}
+.type-fighting {
+  background: #c03028;
+}
+.type-poison {
+  background: #a040a0;
+}
+.type-ground {
+  background: #e0c068;
+}
+.type-flying {
+  background: #a890f0;
+}
+.type-psychic {
+  background: #f85888;
+}
+.type-bug {
+  background: #a8b820;
+}
+.type-rock {
+  background: #b8a038;
+}
+.type-ghost {
+  background: #705898;
+}
+.type-dragon {
+  background: #7038f8;
+}
+.type-dark {
+  background: #705848;
+}
+.type-steel {
+  background: #b8b8d0;
+}
+.type-fairy {
+  background: #ee99ac;
+}
 
 .body-info {
   display: flex;
@@ -681,40 +773,100 @@ CSSを書く。図鑑らしい赤いボディに白いカード、タイプご�
 }
 ```
 
-`src/App.jsx` を図鑑に差し替える（TODOアプリのコードはブランチ上で消しても、mainには残っているので心配ない。並べて表示したい人は `<Pokedex />` を追加するだけでもよい）。
+全体の背景などは `app/globals.css` に書く。
+
+```css
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #ececec;
+  font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', system-ui, sans-serif;
+}
+```
+
+MSW の準備ができてから描く部品（発展3と同じ）と、`app/` のファイル。
 
 ```jsx
-// src/App.jsx
-import Pokedex from './pokedex/Pokedex'
+'use client'
 
-function App() {
-  return <Pokedex />
+import { useEffect, useState } from 'react'
+
+// NEXT_PUBLIC_API_MOCKING=enabled のときだけ、ブラウザで MSW（Service Worker）を起動する。
+// 起動が終わるまで画面を描かないことで、最初の通信からモックに横取りさせる
+const isMockingEnabled = process.env.NEXT_PUBLIC_API_MOCKING === 'enabled'
+
+// 開発中の React は effect を2回実行して確かめるので、起動は1回だけにする
+let startPromise = null
+
+function startMocking() {
+  if (!startPromise) {
+    startPromise = import('@/mocks/browser').then(({ worker }) => worker.start({ onUnhandledRequest: 'bypass' }))
+  }
+  return startPromise
 }
 
-export default App
+export default function MswProvider({ children }) {
+  const [isReady, setIsReady] = useState(!isMockingEnabled)
+
+  useEffect(() => {
+    if (isReady) return
+    startMocking().then(() => setIsReady(true))
+  }, [isReady])
+
+  if (!isReady) return null
+  return children
+}
 ```
-
-起動して確認する。発展3でブラウザ用MSW（Service Worker）を仕込み済みなので、**追加した瞬間からポケモンAPIも横取りされる**。
-
-```bash
-npm run dev -- --host
-```
-
-`pikachu` や `charizard` で検索するとカードが表示され、`mewtwo` など（フィクスチャ未登録）だと「見つかりませんでした」になるはず。開発者ツールのNetworkタブで、`pokeapi.co` へのリクエストが Service Worker から返されている（本物には届いていない）ことを確認しよう。
-
-> **画像だけは本物から来ている**：MSWは「ハンドラを定義したURL**だけ**」を横取りし、それ以外は素通し（パススルー）する。公式アートワークのpng はハンドラを書いていないので、本物のネットワークから取得されている。「どこまでを偽装し、どこからを素通しにするか」を自分で線引きできるのがMSWの強みだ。
-
-### 7. テスト：成功・404・500・ローディングまで面倒を見る
-
-仕上げにテストを書く。ユーザー操作（コマ10）→ 非同期待ち（コマ11）→ MSW（発展3）の合わせ技だ。
 
 ```jsx
-// src/pokedex/Pokedex.test.jsx
+import MswProvider from '@/components/MswProvider'
+import './globals.css'
+
+export const metadata = {
+  title: 'ポケモン図鑑（MSW総合演習）',
+  description: 'PokeAPI を MSW で偽装して作るポケモン図鑑',
+}
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="ja">
+      <body>
+        <MswProvider>{children}</MswProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+```jsx
+import Pokedex from '@/components/Pokedex'
+
+export default function Home() {
+  return <Pokedex />
+}
+```
+
+```bash
+npm run dev
+```
+
+http://localhost:3000 を開き、`pikachu`・`charizard`・`25` で検索する。
+
+- 「さがしています…」が3秒表示されてから、図鑑カードが出る
+- `mewtwo`（フィクスチャにない名前）は「見つかりませんでした」になる
+- 開発者ツールの **Console** に `[MSW] ... GET https://pokeapi.co/api/v2/pokemon/pikachu (200 OK)` と表示されている。**本物の PokeAPI には一度も通信していない**
+
+> 公式アートワークの画像だけは、ハンドラを書いていないので本物の GitHub から取得されている（`onUnhandledRequest: 'bypass'` の効果）。画像まで偽物にしたい場合は、画像を `public/` に置いてフィクスチャの URL を書き換える（課題5）。
+
+### 8. テスト：成功・404・500・読み込み中まで確かめる
+
+```jsx
+// components/Pokedex.test.js
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse, delay } from 'msw'
-import { server } from '../mocks/server'
-import { pokemonData } from '../mocks/fixtures/pokemon'
+import { pokemonData } from '@/mocks/fixtures/pokemon'
+import { server } from '@/mocks/server'
 import Pokedex from './Pokedex'
 
 // 「描画して、名前を入力して、検索ボタンを押す」までを共通化
@@ -726,44 +878,36 @@ async function search(name) {
 }
 
 describe('ポケモン図鑑', () => {
-  it('名前で検索すると図鑑カードが表示される', async () => {
+  test('名前で検索すると図鑑カードが表示される', async () => {
     await search('pikachu')
 
-    expect(
-      await screen.findByRole('heading', { name: 'ピカチュウ' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'ピカチュウ' })).toBeInTheDocument()
     expect(screen.getByText('No.0025')).toBeInTheDocument()
     expect(screen.getByText('でんき')).toBeInTheDocument()
     expect(screen.getByText('ねずみポケモン')).toBeInTheDocument()
   })
 
-  it('検索するポケモンを変えれば表示も変わる', async () => {
+  test('検索するポケモンを変えれば表示も変わる', async () => {
     await search('charizard')
 
-    expect(
-      await screen.findByRole('heading', { name: 'リザードン' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'リザードン' })).toBeInTheDocument()
     expect(screen.getByText('ほのお')).toBeInTheDocument()
     expect(screen.getByText('ひこう')).toBeInTheDocument()
   })
 
-  it('図鑑番号でも検索できる', async () => {
+  test('図鑑番号でも検索できる', async () => {
     await search('25')
 
-    expect(
-      await screen.findByRole('heading', { name: 'ピカチュウ' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'ピカチュウ' })).toBeInTheDocument()
   })
 
-  it('存在しない名前なら「見つかりませんでした」と案内される', async () => {
+  test('存在しない名前なら「見つかりませんでした」と案内される', async () => {
     await search('nazonopokemon')
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      '見つかりませんでした',
-    )
+    expect(await screen.findByRole('alert')).toHaveTextContent('見つかりませんでした')
   })
 
-  it('サーバエラーなら通信エラーの案内が表示される', async () => {
+  test('サーバエラーなら通信エラーの案内が表示される', async () => {
     server.use(
       http.get('https://pokeapi.co/api/v2/pokemon/:name', () => {
         return new HttpResponse(null, { status: 500 })
@@ -775,7 +919,7 @@ describe('ポケモン図鑑', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('通信エラー')
   })
 
-  it('検索中は「さがしています…」と表示される', async () => {
+  test('検索中は「さがしています…」と表示される', async () => {
     server.use(
       http.get('https://pokeapi.co/api/v2/pokemon/:name', async () => {
         await delay(300) // わざと0.3秒待たせてローディング状態を作る
@@ -786,66 +930,116 @@ describe('ポケモン図鑑', () => {
     await search('pikachu')
 
     expect(await screen.findByText('さがしています…')).toBeInTheDocument()
-    expect(
-      await screen.findByRole('heading', { name: 'ピカチュウ' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'ピカチュウ' })).toBeInTheDocument()
   })
 })
 ```
 
+- **`search()` 関数**：「描画して、名前を入力して、検索を押す」までをまとめている。テストの中身が「何を確かめたいか」だけになって読みやすい
+- 成功・404 のテストには **モックのコードがない**。フィクスチャとハンドラが、そのまま「仕様書」になっている
+- 500 と読み込み中のテストだけ、`server.use` でその場で応答を上書きしている
+
 ```bash
-npm run test
+npm test
+npm run lint
+npm run build
 ```
 
-6本すべてPASSすれば完成。このテストの読みどころ：
+```text
+PASS components/Pokedex.test.js
+  ポケモン図鑑
+    ✓ 名前で検索すると図鑑カードが表示される
+    ✓ 検索するポケモンを変えれば表示も変わる
+    ✓ 図鑑番号でも検索できる
+    ✓ 存在しない名前なら「見つかりませんでした」と案内される
+    ✓ サーバエラーなら通信エラーの案内が表示される
+    ✓ 検索中は「さがしています…」と表示される
+```
 
-- **404のテストに `server.use()` がない**：フィクスチャにない名前なら404、というルールをハンドラ自体に設計したから。モックが「本物のAPIの仕様書」として機能している
-- **`findByRole('alert')`**：`role="alert"` を付けたおかげで「エラーの通知が出たか」を意味で検証できる。文言のタグ構造が変わってもテストは壊れない
-- **ローディングのテスト**：応答が一瞬で返るとローディング表示を目視も検証もできない。`delay()` で「遅いサーバ」を再現するのはMSWの定番テクニック
+最後に、**本物の PokeAPI でも同じように動く** ことを1〜2回だけ確かめる（フェアユース）。
 
-最後にコミットして、いつもの流れで取り込む。
+```bash
+npm run dev:real
+```
+
+コードを1行も変えずに本物につながるのは、**フィクスチャとハンドラを本物の形にそっくり合わせた** から。
 
 ```bash
 git add .
-git commit -m "ポケモン図鑑アプリを追加（MSW総合演習）"
-git push origin feature/pokedex
+git commit -m "feat: MSWで偽装したPokeAPIでポケモン図鑑を作る"
+gh repo create pokedex --public --source=. --remote=origin --push
 ```
 
-PRを作り、CIが緑になったらマージする。
+##  演習
+
+### 演習1（基本）：ポケモンを1匹増やす
+
+フィクスチャに、好きなポケモンを1匹追加する（本物の PokeAPI の JSON を1回だけ見て、必要な項目を写す）。
+
+**確認方法**：ブラウザ（`npm run dev`）でそのポケモンを名前と図鑑番号の両方で検索できる。さらに、そのポケモンのテストを1本追加して通ればOK。
+
+> ハンドラは変えずに、**フィクスチャを足すだけ** で動くことを確かめる。
+
+### 演習2（基本）：species の取得が失敗したとき
+
+`/pokemon-species/:id` だけが 500 を返したとき、画面に「通信エラー」と表示されることを確かめるテストを書く。
+
+**確認方法**：テストが通ればOK。さらに、`lib/pokeApi.js` の `if (!speciesRes.ok) throw ...` の行を消しても **テストが通ってしまう** ことを確かめ、その理由を説明する（確かめたら戻す）。
+
+<details>
+<summary>解説</summary>
+
+行を消すと、500 のレスポンスの中身（空）を読もうとして `species.names` が `undefined` になり、`.find` のところで `TypeError` が起きる。この例外も `Pokedex.js` の `catch` に捕まり、`NOT_FOUND` ではないので「通信エラー」と表示される。**画面の結果は同じでも、たまたまそうなっているだけ**。
+
+「エラーの種類ごとに正しく扱えているか」まで確かめたいなら、画面ではなく `lib/pokeApi.js` の `fetchPokemon` を直接テストし、`rejects.toThrow('SERVER_ERROR')` のように **投げられたエラーの種類** を確かめる。`TypeError` のままなら、このテストは失敗する。
+
+</details>
+
+### 演習3（応用）：大文字や空白を含む入力
+
+`' Pikachu '` のように、前後に空白があったり大文字が混ざったりしていても検索できることをテストで確かめる。
+
+**確認方法**：テストが通り、`lib/pokeApi.js` の `.trim().toLowerCase()` を消すと失敗すればOK。
+
+> 本物の PokeAPI は小文字の名前しか受け付けない。**モックも本物と同じく小文字でしか一致しない** ようにしてあるので、アプリ側の整形が本当に必要かをテストで確かめられる。
+
+### 演習4（早く終わった人向け）：検索の履歴
+
+最近検索したポケモンを3件まで、フォームの下にボタンとして表示し、押すとそのポケモンを再検索できるようにする。
+
+**確認方法**：3匹検索するとボタンが3つ並び、押すとそのポケモンのカードが表示されるテストが通ればOK。「履歴を更新する処理」は `lib/` の純粋関数にしてテストする。
 
 ##  まとめ
 
 ### 今日できるようになったこと
 
-- パスパラメータ付きハンドラとフィクスチャで、複数エンドポイントの実在APIを丸ごと偽装できる
-- 2回のfetchを1つのAPI層関数にまとめ、コンポーネントを表示に専念させる設計ができる
-- 成功・404・500・ローディングまで、本物のAPIに一度も接続せずにテストで保証できる
+- 2つのエンドポイントを持つ実在の API を、フィクスチャとパスパラメータのハンドラで丸ごと偽装できた
+- API の呼び出しと整形を `lib/` に分け、画面は整形後のデータだけを扱う設計にできた
+- 成功・404・500・読み込み中をテストし、本物の API に一度も接続せずに開発とテストを完了できた
 
 ### よくある詰まりポイント
 
-- **検索しても何も出ない／コンソールに `[MSW] Warning: intercepted a request without a matching request handler` が出る**：ハンドラのURLとアプリがfetchしているURLが一致していない。タイポ（`pokemon` と `pokemon-species` の取り違えなど）を確認する
-- **404テストだけ通らない**：フィクスチャのキーは小文字の英語名（`pikachu`）。`pokeApi.js` の `toLowerCase()` を書き忘れていると、大文字入力がそのまま404になり他のテストも不安定になる
-- **テストが `getByText` で落ちる**：検索は非同期。結果の検証は `findBy〜`（await付き）を使う。コマ11の復習
+- **画像が表示されず、`hostname ... is not configured under images` というエラー**：`next.config.mjs` の `images.remotePatterns` を確認する
+- **ブラウザで本物の PokeAPI に通信してしまう**：`npm run dev`（`NEXT_PUBLIC_API_MOCKING=enabled` 付き）で起動しているか、`public/mockServiceWorker.js` があるか確認する
+- **テストが `onUnhandledRequest` のエラーで落ちる**：URL の打ち間違いで、ハンドラと一致していない。エラーに出ている URL と `mocks/handlers.js` を見比べる
 
 ### 次の一歩
 
-発展4（Playwright）まで終えていれば、このアプリのE2Eテストを書くのに最適な題材になる。また、個人制作（Phase 5）でAPI連携をやりたい人は、今日の「フィクスチャ＋ハンドラ＋API層」の3点セットをそのまま雛形にできる。
+今日の作り方（本物の形にそっくりのモックを先に作り、画面とテストを完成させてから本物につなぐ）は、バックエンドがまだできていないチーム開発でも使える。個人制作で外部の API を使うときも、まず MSW で偽装してから作ってみよう。
 
 ##  課題
 
 ### 基礎課題（必須）
 
-1. ポケモン図鑑アプリ一式を実装し、テスト6本をPASSさせる
-2. ブラウザで pikachu / charizard / 未登録の名前 の3パターンの表示を確認する
-3. ブランチ→PR→CI緑→マージ の流れで取り込む
+1. 本題を完成させ、`pokedex` リポジトリに `ci.yml`（`todo-app` のものを参考に lint・test・build）を入れて、CI が緑になることを確かめる
+2. 演習1・2を完成させる
 
 ### 応用課題（推奨）
 
-4. **大文字対応の証明**：「`PIKACHU` と大文字で検索してもピカチュウが表示される」テストを追加する（`pokeApi.js` の `toLowerCase()` が仕様として保証されるようになる）
-5. **エラーメッセージの出し分け**：`9999` のような未登録の図鑑番号で検索すると「名前のつづり（英語）を確認しよう」と出るのは不自然。入力が数字のときは「図鑑番号がまちがっていないか確認しよう」と出し分けるようにして、そのテストも足す
-6. **好きなポケモンを図鑑に追加する**：本物の `https://pokeapi.co/api/v2/pokemon/名前` をブラウザで開き、応答を参考にフィクスチャへ3匹目を登録する
+3. Vercel にデプロイする。本番では MSW が動かず、本物の PokeAPI につながることを確かめる（`NEXT_PUBLIC_API_MOCKING` を設定していないため）
+4. 発展4の Playwright で「pikachu を検索するとカードが表示される」E2E テストを書く。E2E では `page.route` で PokeAPI を差し替えるか、`NEXT_PUBLIC_API_MOCKING=enabled` で起動したサーバに対して実行するかを選び、理由を書く
 
 ### チャレンジ課題（挑戦）
 
-7. **「つかまえる」機能**：カードにボタンを置き、押したら画面下部の「手持ちリスト」に追加されるようにする（同じポケモンは2匹追加できない）。この機能のテストも書く
-8. **本物のAPIで最終確認**：`main.jsx` の `enableMocking` を一時的に無効化し、本物のPokeAPIで動くことを確認する（形をそっくりに偽装できていれば無修正で動くはず）。確認は数回にとどめること（フェアユース）。確認後は必ずモックに戻す
+5. 公式アートワークの画像も `public/` に置いて、画像まで含めて完全にオフラインで動くようにする
+6. `https://pokeapi.co/api/v2/pokemon?limit=20` （一覧）のハンドラとフィクスチャを追加し、一覧から選んで図鑑カードを表示できるようにする。一覧のテストも書く

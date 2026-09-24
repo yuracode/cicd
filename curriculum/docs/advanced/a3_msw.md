@@ -3,228 +3,442 @@
 | 項目 | 内容 |
 |------|------|
 | フェーズ | 発展編（任意） |
-| 所要時間 |  |
-| 前提コマ | Phase 2 修了（コマ11 モック・非同期テストまで） |
+| 所要時間 | 90分 |
+| 前提コマ | コマ12 モックと非同期のテスト |
 | 次コマ | なし（発展編は興味のある順に取り組んでよい） |
 
 ##  目標
 
-- `vi.fn()` による fetch差し替えの限界と、MSWが解決することを説明できる
-- MSWをVitest + React Testing Library のテストに導入できる
-- テストごとにAPIの応答（成功／失敗）を切り替えられる
+- `global.fetch = jest.fn()` による差し替えの限界と、MSW が解決することを説明できる
+- MSW を Jest + React Testing Library のテストに導入し、テストごとに成功・失敗・遅延を切り替えられる
+- 同じモックの定義を、Next.js の開発サーバ（ブラウザ）でも使える
 
 ##  導入
 
-### コマ11のチャレンジ課題の答え合わせ
+### コマ12のやり方をふりかえる
 
-コマ11で「なぜ `vi.fn` で fetch を書き換えるより MSW を使った方が良いとされるのか」を調べた。今日はそれを実際に手を動かして確かめる。
+コマ12では、`fetch` を偽物の関数に置き換えてテストした。
 
-### fetch差し替え方式の限界
-
-`globalThis.fetch = vi.fn()` 方式には弱点がある。
-
-- **実装に密結合**：アプリが `fetch` から `axios` に乗り換えたら、テストが全部書き直し
-- **本物っぽさがない**：`{ ok: true, json: async () => ... }` は「fetchの戻り値のフリをしたオブジェクト」であって、HTTPの挙動（ステータスコード、ヘッダ）を再現しきれない
-- **URLを見ていない**：どのURLへのリクエストかを区別するには自前の分岐が必要
-
-> **MSW（Mock Service Worker）とは**：**ネットワークのレイヤーで** リクエストを横取りして偽のレスポンスを返すライブラリ。アプリのコードは本物のAPIと通信しているつもりのまま。テスト（Node）でも開発中のブラウザでも同じモック定義を使い回せる。
-
-### 考え方の違い
-
-```text
-vi.fn方式：  アプリ → [偽のfetch関数]           ← 関数を差し替える
-MSW方式：    アプリ → 本物のfetch → [偽のサーバ] ← 通信相手を差し替える
+```js
+global.fetch = jest.fn()
+fetch.mockResolvedValue({ ok: true, json: async () => [...] })
 ```
 
-「アプリのコードを一切書き換えずに、通信相手だけ偽物にする」のがMSW。
+動くことは動くが、弱点がある。
+
+| 弱点 | 説明 |
+|------|------|
+| 実装の中身に依存する | アプリが `fetch` から別の通信ライブラリ（`axios` など）に変わると、テストを全部書き直すことになる |
+| 本物らしくない | `{ ok: true, json: ... }` は「fetch の戻り値のふりをしたオブジェクト」。ステータスコードやヘッダーの動きは再現できない |
+| URL を見ていない | どの URL への通信でも同じ偽物が返る。URL ごとに変えるには自分で分岐を書く必要がある |
+
+### MSW とは
+
+**MSW（Mock Service Worker）** は、**通信の途中で** リクエストを横取りして、偽のレスポンスを返すライブラリ。
+
+```text
+コマ12の方法： アプリ → [偽物の fetch 関数]                ← 関数を差し替える
+MSW：          アプリ → 本物の fetch → [偽物のサーバ]      ← 通信相手を差し替える
+```
+
+アプリのコードは **本物の API と通信しているつもりのまま**。テスト（Node.js）でも、開発中のブラウザでも、**同じ偽物のサーバの定義** を使い回せる。
 
 ##  本題
 
-### 1. インストール
-
-コマ11で使った `todo-app`（`ApiSample.jsx` があるプロジェクト）で進める。
+### 1. インストールと Jest の設定
 
 ```bash
 cd ~/workspace/todo-app
-npm install -D msw
+git switch main
+git pull
+git switch -c feature/msw
+
+npm install -D msw jest-fixed-jsdom
 ```
 
-### 2. ハンドラの定義：偽APIの仕様書
+`jest.config.mjs` の `testEnvironment` を変える。
 
-「どのURLに何を返すか」を **ハンドラ** として定義する。置き場所は `src/mocks/`。
+```js
+// jest.config.mjs（変更部分）
+  testEnvironment: 'jest-fixed-jsdom',
+```
 
-```javascript
-// src/mocks/handlers.js
+> **なぜ `jest-fixed-jsdom`？** コマ12で見たとおり、jsdom（偽物のブラウザ）には `fetch` がない。MSW は本物の `fetch`・`Request`・`Response` を横取りする仕組みなので、それらがないと動かない（`ReferenceError: Request is not defined` になる）。`jest-fixed-jsdom` は、jsdom に Node.js の `fetch` などを足してくれるテスト環境。
+
+`package.json` のテスト用のコマンドを変える。
+
+```bash
+npm pkg set scripts.test="NODE_OPTIONS=--experimental-vm-modules jest" scripts.test:watch="NODE_OPTIONS=--experimental-vm-modules jest --watch" scripts.test:coverage="NODE_OPTIONS=--experimental-vm-modules jest --coverage"
+```
+
+> **`NODE_OPTIONS=--experimental-vm-modules` の意味**：MSW が使っている部品の中に、**ES モジュール（`import` / `export`）の形でしか配布されていないもの** がある。Jest は標準では古い形式（CommonJS）でファイルを読み込むので、そのままだと `Must use import to load ES Module` というエラーになる。このオプションで、Node.js 24 の「ES モジュールを読み込む機能」を Jest の中でも使えるようにしている。実行すると `ExperimentalWarning` が1行出るが、問題ない。
+
+### 2. ハンドラ：偽物の API の仕様書
+
+「どの URL に何を返すか」を **ハンドラ** として書く。置き場所は `mocks/`。
+
+```bash
+mkdir -p mocks
+```
+
+```js
+// mocks/handlers.js
 import { http, HttpResponse } from 'msw'
 
 export const handlers = [
-  // GET https://jsonplaceholder.typicode.com/todos への応答を定義
   http.get('https://jsonplaceholder.typicode.com/todos', () => {
     return HttpResponse.json([
-      { id: 1, title: 'MSWで返したTODO', completed: false },
-      { id: 2, title: '2件目', completed: true },
+      { userId: 1, id: 1, title: 'MSWで返したTODO', completed: false },
+      { userId: 1, id: 2, title: '2件目', completed: true },
     ])
   }),
 ]
 ```
 
-> **`http.get(url, resolver)`**：「このURLへのGETが来たら、この関数の戻り値を返せ」という宣言。REST APIの仕様書をコードで書いているのに近い。
+- **`http.get(URL, 関数)`**：「この URL に GET が来たら、この関数の戻り値を返す」という宣言
+- **`HttpResponse.json(データ)`**：ステータス 200 で、JSON を返すレスポンスを作る
+- アプリは `?_limit=3` を付けて通信しているが、MSW は **パス部分（`/todos`）で** 一致を判断するので、このハンドラで横取りできる
 
-### 3. テスト用サーバのセットアップ
+### 3. テスト用の偽物のサーバを用意する
 
-```javascript
-// src/mocks/server.js
+```js
+// mocks/server.js
 import { setupServer } from 'msw/node'
 import { handlers } from './handlers'
 
 export const server = setupServer(...handlers)
 ```
 
-コマ9で作ったセットアップファイル（`src/setupTests.js`）に、テスト全体の開始・終了処理を追加する。
+`jest.setup.js` に、テスト全体の開始・終了の処理を追加する。
 
-```javascript
-// src/setupTests.js
+```js
+// jest.setup.js
 import '@testing-library/jest-dom'
-import { beforeAll, afterEach, afterAll } from 'vitest'
-import { server } from './mocks/server'
+import { server } from '@/mocks/server'
 
-beforeAll(() => server.listen())      // 全テスト開始前：横取り開始
-afterEach(() => server.resetHandlers()) // 各テスト後：ハンドラを初期状態に戻す
-afterAll(() => server.close())        // 全テスト終了後：横取り解除
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' })) // 全テストの前：横取り開始
+afterEach(() => server.resetHandlers()) // 各テストの後：ハンドラを最初の状態に戻す
+afterAll(() => server.close()) // 全テストの後：横取り終了
 ```
 
-> **`resetHandlers()` が重要な理由**：後述の「テスト内でのハンドラ上書き」が次のテストに漏れないようにする。コマ11の「テスト間の汚染に注意」と同じ話。
+| 部分 | 意味 |
+|------|------|
+| `onUnhandledRequest: 'error'` | ハンドラを書いていない URL に通信したら **エラーにする**。テストが知らないうちに本物の API を呼ぶのを防ぐ |
+| `resetHandlers()` | テストの中で上書きしたハンドラ（後述）を、次のテストに持ち越さない |
 
-### 4. テストを書き換える
+### 4. lib/api のテストを書き直す
 
-コマ11で書いた `ApiSample.test.jsx` をMSW版にする。**`beforeEach` での fetch差し替えが丸ごと消える** ことに注目。
+コマ12で書いた `lib/api.test.js` を、MSW を使う形に書き直す。**`global.fetch = jest.fn()` が丸ごと消える** ことに注目。
 
-```jsx
-// src/ApiSample.test.jsx
-import { render, screen } from '@testing-library/react'
+```js
+// lib/api.test.js
 import { http, HttpResponse } from 'msw'
-import { server } from './mocks/server'
-import ApiSample from './ApiSample'
+import { server } from '@/mocks/server'
+import { fetchSampleTodos } from './api'
 
-describe('ApiSample（MSW版）', () => {
-  it('取得成功時にリストが表示される', async () => {
-    // ハンドラのデフォルト応答がそのまま使われる
-    render(<ApiSample />)
+const SAMPLE_URL = 'https://jsonplaceholder.typicode.com/todos'
 
-    expect(await screen.findByText(/MSWで返したTODO/)).toBeInTheDocument()
-    expect(screen.getByText(/2件目/)).toBeInTheDocument()
-  })
+test('成功したら title だけの配列を返す', async () => {
+  await expect(fetchSampleTodos()).resolves.toEqual(['MSWで返したTODO', '2件目'])
+})
 
-  it('サーバエラー時にエラーが表示される', async () => {
-    // このテストだけ 500 を返すように上書き
-    server.use(
-      http.get('https://jsonplaceholder.typicode.com/todos', () => {
-        return new HttpResponse(null, { status: 500 })
-      }),
-    )
+test('サーバが 500 を返したら例外を投げる', async () => {
+  server.use(http.get(SAMPLE_URL, () => new HttpResponse(null, { status: 500 })))
 
-    render(<ApiSample />)
+  await expect(fetchSampleTodos()).rejects.toThrow('HTTP 500')
+})
 
-    expect(await screen.findByText(/エラー/)).toBeInTheDocument()
-  })
+test('通信そのものが失敗したら例外を投げる', async () => {
+  server.use(http.get(SAMPLE_URL, () => HttpResponse.error()))
 
-  it('ネットワーク断でもエラーが表示される', async () => {
-    server.use(
-      http.get('https://jsonplaceholder.typicode.com/todos', () => {
-        return HttpResponse.error() // 通信自体の失敗を再現
-      }),
-    )
-
-    render(<ApiSample />)
-
-    expect(await screen.findByText(/エラー/)).toBeInTheDocument()
-  })
+  await expect(fetchSampleTodos()).rejects.toThrow()
 })
 ```
 
-```bash
-npm run test
-```
-
-vi.fn版と比べて何が変わったか：
-
-- **`{ ok: false }` のような手作りオブジェクトが消えた**。`status: 500` と書けば、`res.ok` が `false` になるのは本物のfetchの挙動そのまま
-- **成功系のテストにモックコードが1行もない**。デフォルトのハンドラが仕様書として機能している
-- アプリ側を `axios` に書き換えても、**このテストは1文字も変えずに通る**
-
-> **クエリパラメータの注意**：`ApiSample.jsx` のURLに `?_limit=5` が付いていても、MSWはパス部分（`/todos`）でマッチするので上のハンドラで捕捉できる。パラメータごとに応答を変えたい場合は resolver内で `request.url` を調べる。
-
-### 5. 開発中のブラウザでも使う（Service Worker モード）
-
-MSWの真価は **テストと開発で同じハンドラを共有できる** こと。バックエンドが未完成でも、フロント開発を先に進められる。
+| 書き方 | 意味 |
+|--------|------|
+| （何も書かない） | `mocks/handlers.js` の標準の応答がそのまま使われる |
+| `server.use(ハンドラ)` | **このテストの間だけ** ハンドラを上書きする |
+| `new HttpResponse(null, { status: 500 })` | ステータス 500 のレスポンス。本物の `fetch` と同じく `res.ok` が `false` になる |
+| `HttpResponse.error()` | 通信そのものの失敗（ネットにつながらない状態）を再現する |
 
 ```bash
-npx msw init public/
+npm test
 ```
 
-これで `public/mockServiceWorker.js` が生成される。次にブラウザ用のセットアップ：
+コマ12の方法と比べると、
 
-```javascript
-// src/mocks/browser.js
+- `{ ok: false, status: 500 }` のような **手作りのオブジェクトがなくなった**。`status: 500` と書けば、あとは本物の `fetch` の動きのまま
+- 成功のテストには **モックのコードが1行もない**。ハンドラが「標準の仕様書」になっている
+- アプリの通信ライブラリを変えても、**このテストは書き直さなくてよい**
+
+### 5. 部品のテストも本物の通信の流れで書く
+
+コマ12では、`SampleLoader` のテストで `jest.mock('@/lib/api')` を使い、`fetchSampleTodos` ごと偽物にしていた。MSW があれば、**`lib/api.js` も本物のまま** 通して確かめられる。
+
+```jsx
+// components/SampleLoader.test.js
+import { render, screen, waitFor, waitForElementToBeRemoved } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { delay, http, HttpResponse } from 'msw'
+import { server } from '@/mocks/server'
+import SampleLoader from './SampleLoader'
+
+const SAMPLE_URL = 'https://jsonplaceholder.typicode.com/todos'
+
+async function clickLoad(handleLoad = jest.fn()) {
+  const user = userEvent.setup()
+  render(<SampleLoader onLoad={handleLoad} />)
+  await user.click(screen.getByRole('button', { name: 'サンプルを読み込む' }))
+  return handleLoad
+}
+
+test('読み込みに成功したら、取得した文字で onLoad が呼ばれる', async () => {
+  const handleLoad = await clickLoad()
+
+  await waitFor(() => expect(handleLoad).toHaveBeenCalledWith(['MSWで返したTODO', '2件目']))
+})
+
+test('サーバが 500 を返したらエラーメッセージを表示する', async () => {
+  server.use(http.get(SAMPLE_URL, () => new HttpResponse(null, { status: 500 })))
+
+  await clickLoad()
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('読み込みに失敗しました')
+})
+
+test('通信中は「読み込み中…」を表示する', async () => {
+  server.use(
+    http.get(SAMPLE_URL, async () => {
+      await delay(200)
+      return HttpResponse.json([{ id: 1, title: '遅れて届いたTODO', completed: false }])
+    }),
+  )
+
+  const handleLoad = await clickLoad()
+
+  expect(screen.getByText('読み込み中…')).toBeInTheDocument()
+  await waitForElementToBeRemoved(() => screen.queryByText('読み込み中…'))
+  expect(handleLoad).toHaveBeenCalledWith(['遅れて届いたTODO'])
+})
+```
+
+- **`waitFor(() => expect(...))`**：中の `expect` が通るまで、少しずつ待ちながらくり返す。通信の結果を待つときに使う
+- **`delay(200)`**：MSW の機能で、応答を 200 ミリ秒遅らせる。コマ12の演習4では「自分で成功させるタイミングを決める Promise」を作ったが、MSW なら1行で済む
+
+```bash
+npm test
+git add .
+git commit -m "test: MSWで通信をモックする"
+```
+
+### 6. 開発中のブラウザでも使う
+
+MSW のもう1つの強みは、**テストと同じハンドラを、開発中のブラウザでも使える** こと。API がまだ完成していなくても、画面の開発を先に進められる。
+
+ブラウザ用の Service Worker のファイルを `public/` に作る。
+
+```bash
+npx msw init public --save
+```
+
+`public/mockServiceWorker.js` ができる。自動で作られたファイルなので、ESLint と Prettier の対象から外す。
+
+```js
+// eslint.config.mjs（globalIgnores の中に追加）
+    'public/mockServiceWorker.js',
+```
+
+```bash
+echo "public/mockServiceWorker.js" >> .prettierignore
+```
+
+ブラウザ用の設定を作る。
+
+```js
+// mocks/browser.js
 import { setupWorker } from 'msw/browser'
 import { handlers } from './handlers'
 
 export const worker = setupWorker(...handlers)
 ```
 
-`src/main.jsx` の先頭で、開発時のみ起動するようにする：
+**MSW の準備ができてから画面を描く** ための部品を作る。
 
 ```jsx
-// src/main.jsx（先頭に追加）
-async function enableMocking() {
-  if (!import.meta.env.DEV) return
-  const { worker } = await import('./mocks/browser')
-  return worker.start()
+// components/MswProvider.js
+'use client'
+
+import { useEffect, useState } from 'react'
+
+// NEXT_PUBLIC_API_MOCKING=enabled のときだけ、ブラウザで MSW を起動する
+const isMockingEnabled = process.env.NEXT_PUBLIC_API_MOCKING === 'enabled'
+
+// 開発中の React は effect を2回実行して確かめるので、起動は1回だけにする
+let startPromise = null
+
+function startMocking() {
+  if (!startPromise) {
+    startPromise = import('@/mocks/browser').then(({ worker }) => worker.start({ onUnhandledRequest: 'bypass' }))
+  }
+  return startPromise
 }
 
-enableMocking().then(() => {
-  // 既存の createRoot(...).render(...) をこの中に移動
+export default function MswProvider({ children }) {
+  const [isReady, setIsReady] = useState(!isMockingEnabled)
+
+  useEffect(() => {
+    if (isReady) return
+    startMocking().then(() => setIsReady(true))
+  }, [isReady])
+
+  if (!isReady) return null
+  return children
+}
+```
+
+| 部分 | 意味 |
+|------|------|
+| `process.env.NEXT_PUBLIC_API_MOCKING` | モックを使うかどうかを環境変数で切り替える（コマ19）。本番では設定しないので、MSW は動かない |
+| `import('@/mocks/browser')` | MSW のブラウザ用のコードを **必要なときだけ** 読み込む。サーバ側では読み込まれない |
+| `onUnhandledRequest: 'bypass'` | ハンドラのない通信（画像など）は、そのまま本物に流す |
+| `startPromise` | 開発中の React（StrictMode）は、確かめるために effect を **2回** 実行する。2回起動すると MSW がエラーになるので、1回にまとめている |
+| `if (!isReady) return null` | 起動が終わるまで何も描かない。**最初の通信から** 確実に横取りさせるため |
+
+`app/layout.js` で全体を包む。
+
+```jsx
+// app/layout.js（変更部分）
+import MswProvider from '@/components/MswProvider'
+
+// <body> の中
+<Header />
+<MswProvider>{children}</MswProvider>
+<Footer />
+```
+
+モックを有効にして起動するコマンドを追加する。
+
+```bash
+npm pkg set scripts.dev:mock="NEXT_PUBLIC_API_MOCKING=enabled next dev"
+npm run dev:mock
+```
+
+ブラウザで「サンプルを読み込む」を押すと、「MSWで返したTODO」「2件目」が追加される。開発者ツールの **Console** には、次のように表示される。
+
+```text
+[MSW] Mocking enabled.
+[MSW] 12:34:56 GET https://jsonplaceholder.typicode.com/todos (200 OK)
+```
+
+`npm run dev`（モックなし）で起動し直すと、本物の JSONPlaceholder のデータに戻る。
+
+```bash
+npm run lint
+npm test
+npm run build
+git add .
+git commit -m "feat: 開発中のブラウザでもMSWを使えるようにする"
+git push -u origin feature/msw
+gh pr create --fill
+```
+
+> **Service Worker とは**：ブラウザが、ページとは別に動かしておけるスクリプト。ページの通信を仲介できる。MSW はこれを使って「ブラウザの中に偽物のサーバを立てる」。
+
+##  演習
+
+### 演習1（基本）：通信が失敗したときのテスト
+
+`components/SampleLoader.test.js` に、「通信そのものが失敗しても（`HttpResponse.error()`）エラーメッセージが表示される」テストを追加する。
+
+**確認方法**：テストが通り、`SampleLoader.js` の `catch` の中の `setStatus('error')` を消すと失敗すればOK（確かめたら戻す）。
+
+### 演習2（基本）：ハンドラを変えて、ブラウザで確かめる
+
+`mocks/handlers.js` の返すデータを3件に増やし、`npm run dev:mock` で読み込んだときに3件追加されることを確かめる。
+
+**確認方法**：ブラウザでは3件追加される。`npm test` を実行すると、「成功したら title だけの配列を返す」テストが失敗する（2件を期待しているため）ので、テストも直して通ればOK。
+
+> ハンドラは **テストとブラウザで共有** している。データを変えるとテストも影響を受ける。テストで特定のデータに依存したいときは、テストの中で `server.use` を使って上書きするのが安全。
+
+### 演習3（応用）：ゆっくり届く通信をブラウザで観察する
+
+`mocks/handlers.js` のハンドラの中で `await delay(2000)` を入れ、`npm run dev:mock` で「読み込み中…」が2秒表示されることを確かめる。
+
+ただし、このままだと **テストも2秒ずつ遅くなる**。テストのときだけ待たないようにする。
+
+**確認方法**：ブラウザでは2秒待ち、`npm test` の時間は変わらなければOK。
+
+<details>
+<summary>ヒント</summary>
+
+Jest でテストを実行している間は、`process.env.NODE_ENV` が `'test'` になっている。
+
+```js
+import { delay, http, HttpResponse } from 'msw'
+
+http.get('https://jsonplaceholder.typicode.com/todos', async () => {
+  if (process.env.NODE_ENV !== 'test') {
+    await delay(2000)
+  }
+  return HttpResponse.json([...])
 })
 ```
 
-```bash
-npm run dev -- --host
+</details>
+
+### 演習4（早く終わった人向け）：URL のパラメータで応答を変える
+
+アプリは `?_limit=3` を付けて通信している。ハンドラの中で `request.url` から `_limit` を読み取り、**その件数だけ** TODO を返すようにする。`lib/api.js` の `_limit` を 5 にしたら、5件返ることをテストで確かめる。
+
+**確認方法**：`_limit` を変えると、返ってくる件数が変わることをテストで確かめられればOK。
+
+<details>
+<summary>ヒント</summary>
+
+```js
+http.get('https://jsonplaceholder.typicode.com/todos', ({ request }) => {
+  const url = new URL(request.url)
+  const limit = Number(url.searchParams.get('_limit') ?? 10)
+  const todos = Array.from({ length: limit }, (_, i) => ({ userId: 1, id: i + 1, title: `TODO ${i + 1}`, completed: false }))
+  return HttpResponse.json(todos)
+})
 ```
 
-ブラウザの開発者ツール → Networkタブを開くと、リクエストがService Workerに横取りされ、`handlers.js` で定義したデータが画面に出ていることが確認できる。
-
-> **Service Workerとは**：ブラウザがページとは別に動かすスクリプトで、ページの通信を仲介できる。MSWはこれを利用して「ブラウザ内に偽サーバを立てる」。
+</details>
 
 ##  まとめ
 
 ### 今日できるようになったこと
 
-- MSWでネットワーク層のモックを構築し、テストから fetch差し替えコードを一掃できる
-- `server.use()` でテストごとに成功／失敗の応答を切り替えられる
-- 同じハンドラ定義を開発中のブラウザでも使える
+- MSW で通信を横取りし、`global.fetch = jest.fn()` や `jest.mock('@/lib/api')` を使わずにテストできるようになった
+- `server.use()` で、テストごとに成功・500・通信失敗・遅延を切り替えられるようになった
+- 同じハンドラを、`MswProvider` を通して開発中のブラウザでも使えるようになった
 
 ### よくある詰まりポイント
 
-- **`server.use` の上書きが他のテストに影響**：`afterEach(() => server.resetHandlers())` がセットアップファイルに入っているか確認
-- **ブラウザでモックが効かない**：`npx msw init public/` を忘れている、またはService Worker登録前に画面を描画している（`enableMocking().then(...)` の構造を確認）
+- **`ReferenceError: Request is not defined`**：`testEnvironment` が `'jest-fixed-jsdom'` になっているか確認する
+- **`Must use import to load ES Module`**：`npm test` のコマンドに `NODE_OPTIONS=--experimental-vm-modules` が付いているか確認する（`npx jest` を直接実行するときも同じように付ける）
+- **`server.use` の上書きが他のテストに影響する**：`jest.setup.js` に `afterEach(() => server.resetHandlers())` があるか確認する
+- **ブラウザでモックが効かない**：`public/mockServiceWorker.js` があるか、`npm run dev:mock`（環境変数付き）で起動しているかを確認する
 
 ### 次の一歩
 
-発展4（Playwright E2E）と組み合わせると「E2EテストでもMSWでAPIを固定する」という実務的な構成に進める。個人制作でバックエンドが必要になったら、まずMSWでAPIの仕様を先に決めて画面を作る「モックファースト開発」も試してほしい。今日の内容をもっと本格的に使い倒す総合演習として、発展6（ポケモン図鑑アプリ）も用意してある。
+発展6では、PokeAPI（実在の公開 API）を MSW で丸ごと偽装して、ポケモン図鑑アプリを1から作る。複数の URL・URL のパラメータ・画像の表示まで含めた総合演習になっている。
 
 ##  課題
 
 ### 基礎課題（必須）
 
-1. `ApiSample.test.jsx` をMSW版に書き換え、成功・500エラー・ネットワーク断の3テストをPASSさせる
-2. ブランチ→PR→CI緑→マージ の流れで取り込む
+1. `lib/api.test.js` と `components/SampleLoader.test.js` を MSW 版に書き換え、PR でマージする（CI が緑になること）
+2. `components/TodoApp.test.js` の `jest.mock('@/lib/api')` も外し、MSW のハンドラでサンプル読み込みの結合テストを書き直す
 
 ### 応用課題（推奨）
 
-3. **遅延の再現**：resolver内で `await delay(1000)`（`msw` の `delay` をimport）してから応答を返し、「読み込み中…」の表示をブラウザで目視確認する
-4. **POSTのモック**：`http.post()` でTODO追加APIのハンドラを書き、`request.json()` で受け取ったボディをそのまま `HttpResponse.json()` で返す
+3. 演習3・4を完成させる
+4. `onUnhandledRequest: 'error'` の効果を確かめる。`lib/api.js` の URL をわざと `https://jsonplaceholder.typicode.com/posts` に変えてテストを実行し、どんなエラーが出るかを読む（確かめたら戻す）
 
 ### チャレンジ課題（挑戦）
 
-5. ハンドラ内に配列を持たせて **GET/POST/DELETEで増減する「状態付きモックAPI」** を作る。本物のバックエンドが無くても、TODOアプリのAPI連携版が完全に動くことを確認する
-6. vi.fn方式とMSW方式のテストコードを見比べ、「実装詳細に依存しないテスト」というコマ11の教えがどう実現されているかを3行でまとめる
+5. ハンドラの中に配列を持たせ、`http.get`・`http.post`・`http.delete` で増えたり減ったりする **状態を持った偽物の API** を作る。TODO をサーバに保存するアプリを、本物のサーバなしで作ってみる
+6. コマ12の `jest.fn()` の方法と MSW の方法のテストを見比べ、「実装の中身に依存しないテスト」がどう実現されているかを3行でまとめる

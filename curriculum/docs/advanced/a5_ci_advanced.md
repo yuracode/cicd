@@ -1,180 +1,333 @@
-# 発展5｜CI/CD強化（キャッシュ・並列化・Dependabot）
+# 発展5｜CI/CD強化（キャッシュ・共通化・Dependabot）
 
 | 項目 | 内容 |
 |------|------|
 | フェーズ | 発展編（任意） |
-| 所要時間 |  |
-| 前提コマ | Phase 3 修了（コマ18 Secrets管理まで） |
+| 所要時間 | 90分 |
+| 前提コマ | Phase 4 のコマ23 CI/CDパイプラインの完成まで |
 | 次コマ | なし（発展編は興味のある順に取り組んでよい） |
 
 ##  目標
 
-- CIの実行時間を計測し、キャッシュと並列化で短縮できる
-- 無駄なCI実行を `concurrency` で自動キャンセルできる
-- Dependabotで依存パッケージの更新を自動化し、CIと組み合わせて安全に取り込める
+- CI の実行時間を測り、ビルドのキャッシュで短くできる
+- ジョブごとにくり返している手順を **Composite Action** にまとめ、`timeout-minutes` で固まったジョブを打ち切れる
+- Dependabot で依存パッケージの更新 PR を自動で作らせ、CI と組み合わせて安全に取り込める
 
 ##  導入
 
-### 「動くCI」から「速くて安いCI」へ
+### 「動く CI」から「速くて、手入れしやすい CI」へ
 
-Phase 3で作ったCIは正しく動く。だが現場では次の不満が必ず出る。
+コマ23で作った CI/CD は正しく動く。だが、使い続けると次のような不満が出てくる。
 
-- **遅い**：pushしてから結果が出るまで数分。待ち時間×人数×回数は大きなコスト
-- **無駄が多い**：同じPRに3回連続pushしたら、古い2回分の実行は結果を見る前にゴミになる
-- **依存が古びる**：`package.json` の依存は放っておくと脆弱性の温床になる
+- **遅い**：push してから結果が出るまで数分かかる。待ち時間 × 人数 × 回数は大きなコスト
+- **同じことを何度も書いている**：`checkout` → `setup-node` → `npm ci` が、どのジョブにも並んでいる。Node.js のバージョンを上げるときに、全部直す必要がある
+- **依存パッケージが古くなる**：`package.json` のパッケージは、放っておくと古くなり、セキュリティの穴が見つかることもある
 
-今日はこの3つを潰す。**CIは「作って終わり」ではなく「運用して磨く」もの**、というのが本コマの主題。
+**CI は作って終わりではなく、使いながら手入れしていくもの**。今日はこの3つに取り組む。
 
-### まず現状を計測する
+### まず測る
 
-改善の第一歩は計測。GitHubリポジトリの **Actions → 対象ワークフロー** を開き、直近数回の実行時間をメモしておく。特に `npm ci` のステップに何秒かかっているかを見る。
+改善の第一歩は **測ること**。「速くなった気がする」ではなく、変更の前と後を数字で比べる。
 
-> **推測するな、計測せよ**：性能改善の鉄則。「速くなった気がする」ではなく、before/afterの数字で語れるようにする。
+```bash
+cd ~/workspace/todo-app
+gh run list --workflow=ci.yml --limit 5
+gh run view <実行のID>
+```
+
+`gh run view` で、ジョブごとの時間が表示される。Actions の画面でジョブを開くと、ステップごとの時間も見られる。**`npm ci` と `Build` のステップに何秒かかっているか** をメモしておく。
 
 ##  本題
 
-### 1. npmキャッシュで依存インストールを高速化
+### 1. ブランチを切る
 
-CIのマシンは毎回まっさら（コマ13）なので、`npm ci` が毎回全ダウンロードしている。`setup-node` の1行でキャッシュが効く。
+```bash
+git switch main
+git pull
+git switch -c ci/improve
+```
+
+### 2. くり返しを Composite Action にまとめる
+
+今の `ci.yml` では、どのジョブもこの3ステップで始まっている。
 
 ```yaml
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: npm   # ← この1行を追加
+          cache: npm
+      - run: npm ci
 ```
 
-> **何がキャッシュされるのか**：`node_modules` そのものではなく、npmの **ダウンロードキャッシュ**（`~/.npm`）。`package-lock.json` の内容をキーにして保存され、lockファイルが変わらない限り再利用される。だから「lockと違う古いパッケージが混入する」事故は起きない。
+「Node.js を用意して `npm ci` する」部分を、**自分専用のアクション** にまとめる。
 
-pushして、`npm ci` のステップ時間をbeforeと比較する。依存が多いほど効果が大きい。
-
-### 2. concurrency：無駄な実行を自動キャンセル
-
-同じPRに続けてpushしたとき、古い実行を自動で止める設定。ワークフローの先頭（`on:` の下あたり）に追加する。
-
-```yaml
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+```bash
+mkdir -p .github/actions/setup
 ```
 
-- **`group`**：「ワークフロー名 × ブランチ」単位でグループ化
-- **`cancel-in-progress: true`**：同じグループの実行が始まったら、走行中の古い方をキャンセル
-
-タイプミス修正のpushを3連発したとき、1・2回目のCIが自動キャンセルされるのを確認してみる。**無料枠の実行時間（プライベートリポジトリでは月2,000分）を守る** 実用的な設定でもある。
-
-### 3. timeout-minutes：固まったジョブを打ち切る
-
-依存サーバの不調などでジョブが無限に待ち続けると、実行時間を延々と浪費する。ジョブには必ず上限を切る習慣をつける。
-
 ```yaml
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10   # ← 通常5分で終わるジョブなら2倍を目安に
+# .github/actions/setup/action.yml
+name: Node.js と依存パッケージの準備
+description: Node.js 24 を用意し、npm ci で依存パッケージを入れる
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 24
+        cache: npm
+    - name: 依存パッケージをインストール
+      run: npm ci
+      shell: bash
 ```
 
-### 4. ジョブの並列化を見直す
+| 部分 | 意味 |
+|------|------|
+| `using: composite` | 複数のステップをまとめた **Composite Action** であることを示す |
+| `shell: bash` | Composite Action の中の `run` には、どのシェルで実行するかを必ず書く |
 
-コマ15〜16で lint と test を作った。もし1つのジョブに直列で入れているなら、ジョブを分けると **同時に走る**。
+`ci.yml` の各ジョブを、次のように書き換える。
 
 ```yaml
-jobs:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+```
+
+`uses: ./.github/actions/setup` は「このリポジトリの中の、このフォルダのアクションを使う」という意味。**`actions/checkout` だけは先に書く** 必要がある（コードを取ってくるまで、`.github/actions/setup` もランナーの中にないため）。
+
+これで、Node.js のバージョンを上げるときは `action.yml` の1か所を直すだけで済む。
+
+### 3. 固まったジョブを打ち切る
+
+何かの不調でジョブが止まらなくなると、最大で6時間動き続けて実行時間を無駄にする。**ジョブにはいつも上限を付ける**。
+
+```yaml
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
-
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run test -- --run
 ```
 
-> **トレードオフに注意**：ジョブを分けると `npm ci` が2回走る（キャッシュがあるので高速だが、ゼロではない）。「全体の待ち時間は短くなるが、合計の実行分数は増える」。**待ち時間を取るか、実行分数（コスト）を取るか** は現場でも定番の議論。理由を説明できるならどちらでもよい。
+目安は **ふだんかかる時間の2〜3倍**。E2E（発展4）のような時間のかかるジョブは長めにする。
 
-### 5. Dependabot：依存更新の自動PR
+### 4. Next.js のビルドをキャッシュする
 
-リポジトリに `.github/dependabot.yml` を作る。
+Next.js は、ビルドの途中の結果を `.next/cache` に保存し、次のビルドで使い回す。手元で試してみる。
+
+```bash
+rm -rf .next
+time npm run build     # 1回目
+time npm run build     # 2回目（.next/cache が残っている）
+```
+
+```text
+real    0m5.291s   ← 1回目
+real    0m2.600s   ← 2回目
+```
+
+（時間は PC によって違う）
+
+ところが CI のランナーは **毎回まっさら** なので、`.next/cache` はいつも空。`actions/cache` でランナーの外に保存しておき、次の実行で戻す。
+
+```yaml
+# .github/workflows/ci.yml（build ジョブ。npm run build の前に追加）
+      - name: Next.js のビルドキャッシュ
+        uses: actions/cache@v6
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('app/**', 'components/**', 'lib/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
+```
+
+| 部分 | 意味 |
+|------|------|
+| `path` | 保存・復元するフォルダ |
+| `key` | キャッシュの名前。**中身が変わったら名前も変わる** ように、ファイルのハッシュ（`hashFiles`）を入れる |
+| `restore-keys` | `key` と完全に一致するキャッシュがないとき、**先頭が一致する一番新しいキャッシュ** を使う。コードを少し変えただけなら、前回のキャッシュを使って速くなる |
+
+> **`hashFiles` とは**：ファイルの中身から計算した「指紋」のような文字列。中身が1文字でも変わると、まったく違う値になる。`package-lock.json` が変わる（パッケージを更新する）と、キャッシュを作り直す。
+>
+> `setup-node` の `cache: npm` は **ダウンロードしたパッケージ**（`~/.npm`）のキャッシュ、今回のものは **Next.js のビルド結果** のキャッシュ。役割が違うので両方使う。
+
+`pages-build` ジョブにも同じステップを入れると、Pages 向けのビルドも速くなる（ただしキャッシュの `key` は `nextjs-pages-...` のように別の名前にする。Pages 向けは設定が違うため）。
+
+### 5. push して効果を測る
+
+```bash
+npx --yes js-yaml .github/workflows/ci.yml > /dev/null && echo "YAML OK"
+git add .
+git commit -m "ci: Composite Actionで共通化し、Next.jsのビルドキャッシュとtimeoutを追加"
+git push -u origin ci/improve
+gh pr create --fill
+gh pr checks --watch
+```
+
+1回目の実行ではキャッシュがないので、「Next.js のビルドキャッシュ」のステップに `Cache not found` と出る。何か小さな変更（コメントを1行足すなど）をもう一度 push すると、2回目は `Cache restored` と出て、Build のステップが短くなる。
+
+**変更前と後の時間を PR の本文に書いてから** マージする。
+
+### 6. Dependabot：依存パッケージの更新を自動化する
+
+`.github/dependabot.yml` を作る。
 
 ```yaml
 # .github/dependabot.yml
 version: 2
 updates:
-  # npm パッケージの更新チェック
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Tokyo
     open-pull-requests-limit: 5
+    groups:
+      testing:
+        patterns:
+          - 'jest*'
+          - '@testing-library/*'
+      nextjs:
+        patterns:
+          - 'next'
+          - 'eslint-config-next'
+          - 'react'
+          - 'react-dom'
 
-  # GitHub Actions（uses: しているアクション）の更新チェック
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Tokyo
 ```
 
-これだけで、毎週GitHubが依存の新バージョンを調べ、**更新PRを自動で作ってくれる**。
+| 部分 | 意味 |
+|------|------|
+| `package-ecosystem: npm` | `package.json` のパッケージの更新を調べる |
+| `package-ecosystem: github-actions` | ワークフローで使っている `actions/checkout@v7` などの更新を調べる |
+| `schedule` | 毎週月曜の朝9時（日本時間）に調べる |
+| `open-pull-requests-limit` | 同時に開く PR の上限 |
+| `groups` | 関係の深いパッケージを **1つの PR にまとめる**。`next` と `eslint-config-next` はバージョンをそろえる必要があるので、一緒に更新させる |
 
-> **DependabotとCIの相乗効果**：Dependabotが作るのは「ただのPR」。つまり **Phase 3で作ったCI（lint・test）が自動で走る**。CIが緑なら「この更新を取り込んでもアプリは壊れない」とほぼ判断できる。テストの充実度が、そのまま「更新を安心して取り込める度」になる——Phase 2で書いたテストがここで効いてくる。
-
-最初のPRが来たら、CIが緑なことを確認して自分でマージしてみる。
-
-### 6. READMEにステータスバッジを付ける
-
-CIの状態をREADMEの先頭で見せる。バッジのMarkdownは Actions → 対象ワークフロー → 右上「…」→ **Create status badge** からコピーできる。形式は次の通り。
-
-```markdown
-![CI](https://github.com/ユーザー名/リポジトリ名/actions/workflows/ci.yml/badge.svg)
+```bash
+git switch main
+git pull
+git switch -c chore/dependabot
+git add .github/dependabot.yml
+git commit -m "chore: Dependabotを設定"
+git push -u origin chore/dependabot
+gh pr create --fill
 ```
 
-「このリポジトリはCIが整備されていて、いま緑です」という **他人への信頼情報**。OSSのREADMEにバッジが並んでいる理由がこれ。
+マージすると、GitHub がパッケージの新しいバージョンを調べ、**更新の PR を自動で作る** ようになる（最初の PR が来るまで少し時間がかかることがある）。
+
+```bash
+gh pr list --author "app/dependabot"
+```
+
+### 7. Dependabot の PR をどう扱うか
+
+Dependabot が作るのは **ふつうの PR**。つまり、**これまで作ってきた CI（lint・test・build・E2E）がそのまま動く**。
+
+| CI の結果 | 判断 |
+|----------|------|
+| 全部緑 | 「この更新を取り込んでもアプリは壊れない」と、ほぼ判断できる。プレビュー URL も軽く確かめてマージする |
+| 赤 | **Dependabot が仕事をした** 状態。壊れる更新を、本番に出る前に見つけられた。PR の中のリリースノート（変更点）を読み、コードを直すか、今は見送るか決める |
+
+> **テストがあるほど、更新を安心して取り込める**。Phase 2 で書いたテストは、ここでも効いてくる。逆に、テストが少ないプロジェクトでは、Dependabot の PR を怖くてマージできなくなる。
+
+バージョンの番号の読み方（**セマンティックバージョニング**）も押さえておく。
+
+| 例 | 変わった場所 | 意味 |
+|----|------------|------|
+| 16.3.6 → 16.3.7 | パッチ | バグの修正。基本的に安全 |
+| 16.3.6 → 16.4.0 | マイナー | 機能の追加。基本的に今のコードは動く |
+| 16.3.6 → 17.0.0 | メジャー | **互換性のない変更がある**。リリースノートと移行ガイドを必ず読む |
+
+##  演習
+
+### 演習1（基本）：前と後の時間を比べる
+
+本題5の PR で、変更の前（`main` の最近の実行）と後（PR の2回目の実行）について、次の時間を表にまとめて PR の本文に書く。
+
+- 全体の時間
+- `build` ジョブの時間
+- `build` ジョブの中の「Build」ステップの時間
+
+**確認方法**：表の数字から、キャッシュの効果があったか（なかったか）を1行で説明できればOK。
+
+> 小さなアプリでは、キャッシュの効果が数秒しかないこともある。**効果が小さいなら、設定を増やさない** という判断も正しい。測ってから決める。
+
+### 演習2（基本）：Composite Action を E2E ジョブにも使う
+
+発展4の `e2e` ジョブがあれば、そこも Composite Action を使う形に書き換える。なければ、`pages-build` ジョブで使っていることを確かめる。
+
+**確認方法**：`ci.yml` の中に `node-version: 24` が **1か所も出てこない**（`action.yml` にだけある）状態になればOK。
+
+```bash
+grep -n "node-version" .github/workflows/ci.yml .github/actions/setup/action.yml
+```
+
+### 演習3（応用）：Dependabot の PR を1つマージする
+
+Dependabot から来た PR を1つ選び、次の手順で扱う。
+
+1. PR の本文の **Release notes** や **Changelog** を読み、何が変わったかを1〜2行でまとめてコメントに書く
+2. CI の結果を確かめる
+3. プレビュー URL でアプリが動くことを確かめる
+4. 問題がなければマージする。CI が赤ければ、原因を調べてコメントに書く
+
+**確認方法**：PR に、変更内容のまとめと判断の理由がコメントで残っていればOK。
+
+> PR がまだ来ていない場合は、`npm outdated` で古いパッケージを探し、手で `npm install パッケージ名@latest` して同じ手順で PR を作ってもよい。
+
+### 演習4（早く終わった人向け）：脆弱性の情報を確かめる
+
+```bash
+npm audit
+```
+
+を実行し、見つかった脆弱性（セキュリティの穴）があれば、その深刻度（`low`・`moderate`・`high`・`critical`）と、どのパッケージを通して入っているかを読む。
+
+リポジトリの **Security** タブ → **Dependabot alerts** も開き、GitHub が見つけた脆弱性の一覧を確かめる（Settings → **Advanced Security** で Dependabot alerts が有効になっているか確認する）。
+
+**確認方法**：「脆弱性が見つかったら、何が起き、自分は何をすればよいか」を3行でまとめられればOK。
 
 ##  まとめ
 
 ### 今日できるようになったこと
 
-- `cache: npm` と並列ジョブでCIの待ち時間を計測・短縮できる
-- `concurrency` と `timeout-minutes` で実行時間の浪費を防げる
-- Dependabot + CI で「依存更新が来る→自動テスト→安心してマージ」の循環を作れる
+- CI の時間を測り、`.next/cache` のキャッシュで Build を短くできるようになった
+- くり返しの手順を Composite Action にまとめ、`timeout-minutes` で上限を決められるようになった
+- Dependabot で更新の PR を自動で作らせ、CI とセマンティックバージョニングで判断して取り込めるようになった
 
 ### よくある詰まりポイント
 
-- **キャッシュが効かない**：`package-lock.json` がコミットされていないとキーが作れない。lockファイルは必ずコミットする（コマ1以来の約束）
-- **Dependabotのメジャー更新PRでCIが赤**：それは **Dependabotが正しく仕事をした** 状態。壊れる更新を本番前に検出できた、ということ。PRの変更履歴（リリースノート）を読んで対応を判断する
+- **`Can't find 'action.yml'`**：`uses: ./.github/actions/setup` の前に `actions/checkout` があるか確認する
+- **Composite Action で `shell` がないというエラー**：`run` を使うステップには `shell: bash` を書く
+- **キャッシュがいつも `Cache not found`**：`key` にいつも変わる値（日時など）が入っていないか、`restore-keys` を書いたかを確認する
+- **Dependabot の PR で `next` と `eslint-config-next` のバージョンがずれて CI が落ちる**：`groups` で一緒に更新させる
 
 ### 次の一歩
 
-発展4（Playwright）を導入済みなら、E2Eワークフローにもキャッシュとconcurrencyとtimeoutを適用してみる。個人制作リポジトリに今日の設定一式＋バッジを入れると、発表時の説得力が上がる。
+発展4の E2E と今日の設定を組み合わせると、Playwright のブラウザのダウンロードもキャッシュしたくなる。`actions/cache` で `~/.cache/ms-playwright` を保存する方法を調べてみよう。個人制作のリポジトリにも今日の設定をまとめて入れておくと、発表のときに「CI の手入れもしている」と言える。
 
 ##  課題
 
 ### 基礎課題（必須）
 
-1. `cache: npm`・`concurrency`・`timeout-minutes` の3点をCIに追加するPRを作り、`npm ci` のbefore/afterの秒数をPR本文に書いてマージする
-2. `dependabot.yml` を追加し、最初に来た更新PRをCI緑を確認してマージする（来るまで数日かかる場合は、届いたら対応でよい）
+1. 本題のCI の改善（Composite Action・timeout・ビルドキャッシュ）と Dependabot の設定をマージする
+2. 演習1の表を完成させる
 
 ### 応用課題（推奨）
 
-3. READMEにCIバッジを追加する。ついでにデプロイ用ワークフローがあればそのバッジも並べる
-4. わざと `package-lock.json` を変更する更新（何かのパッケージを1つ更新）を行い、キャッシュキーが変わって再ダウンロードが走ること、その次の実行では再びキャッシュが効くことをログで確認する
+3. 演習3を行い、Dependabot の PR を1つ以上マージする
+4. `pages-build` ジョブにも、別の `key` でビルドキャッシュを入れる
 
 ### チャレンジ課題（挑戦）
 
-5. **paths-ignore** を調べ、「READMEだけの変更ではテストCIを走らせない」設定を追加する。ドキュメント修正のたびにCIが回る無駄を止める
-6. リポジトリの **Insights → Dependency graph → Dependabot** と **Security → Dependabot alerts** を見て、脆弱性アラートの仕組みを調べる。「依存の脆弱性が見つかったら何が起きて、自分は何をすべきか」を3行でまとめる
+5. **Reusable Workflow**（`on: workflow_call`）を調べ、「lint と test をするワークフロー」を別ファイルにして `ci.yml` から呼び出す。Composite Action（ステップのまとまり）との違いを説明する
+6. アクションのバージョンを `@v7` ではなく **コミットの SHA**（`actions/checkout@<40文字の英数字>`）で固定する方法と、その理由（コマ14の課題6）を調べる。Dependabot が SHA で固定したアクションも更新してくれるかを確かめる

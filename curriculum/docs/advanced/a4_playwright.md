@@ -1,236 +1,419 @@
-# 発展4｜Playwrightで E2Eテスト＋CI組み込み
+# 発展4｜PlaywrightでE2Eテスト＋CI組み込み
 
 | 項目 | 内容 |
 |------|------|
 | フェーズ | 発展編（任意） |
-| 所要時間 |  |
-| 前提コマ | Phase 2・3 修了（コマ16 CI：テストの自動化まで） |
+| 所要時間 | 90分 |
+| 前提コマ | Phase 4 のコマ23 CI/CDパイプラインの完成まで |
 | 次コマ | なし（発展編は興味のある順に取り組んでよい） |
 
 ##  目標
 
-- E2Eテストが単体・結合テストと何が違い、何を守るのかを説明できる
-- PlaywrightでTODOアプリのE2Eテストを書き、ローカルで実行できる
-- E2EテストをGitHub Actionsに組み込み、失敗時のレポートを確認できる
+- E2E テストが、Jest + React Testing Library のテストと何が違い、何を守るのかを説明できる
+- Playwright で `todo-app` の E2E テストを書き、手元で実行・デバッグできる
+- E2E テストを CI/CD パイプラインに組み込み、失敗したときのレポートを確かめられる
 
 ##  導入
 
-### コマ7で「扱わない」と言ったやつ
+### Jest のテストでは確かめられないこと
 
-テストのピラミッド（コマ7）で3階層の一番上にいた **E2Eテスト（End-to-End）** に、ついに手を出す。
+コマ8で見たテストのピラミッドの一番上、**E2E テスト**（End to End：最初から最後まで）に取り組む。
 
-- 単体・結合テスト（Vitest + RTL）：コンポーネントを **Node内の仮想DOM** で検証。速いが、本物のブラウザでは動かしていない
-- E2Eテスト：**本物のブラウザ** を自動操作して、ユーザーと同じ手順で検証。遅いが、最も本番に近い
+| | Jest + RTL（コマ8〜13） | E2E（Playwright） |
+|--|----------------------|------------------|
+| 動かす場所 | Node.js の中の **偽物のブラウザ（jsdom）** | **本物のブラウザ**（Chromium など） |
+| 動かすもの | 部品や関数を1つずつ | `npm run build` したアプリ全体 |
+| 速さ | 速い（数秒） | 遅い（数十秒〜） |
 
-RTLのテストが全部緑でも、「ビルド設定のミスで本番ページが真っ白」は検出できない。E2Eは **「アプリ全体が本当に動くか」** という最後の砦を守る。
+Jest のテストが全部緑でも、次のような問題は見つけられない。
 
-> **Playwrightとは**：Microsoft製のE2Eテストフレームワーク。Chromium / Firefox / WebKit の3エンジンを自動操作できる。近年のフロントエンド現場では第一選択になりつつある。
+- `dynamic` の `ssr: false` を外してしまい、**本番のビルドでだけ** ページが表示されない（コマ24の事件5）
+- localStorage に保存して **再読み込み** したら本当に残るか
+- **async な Server Component** のページ（コマ13の `/tips`）が正しく表示されるか
+- CSS が読み込まれず、ボタンが画面の外に出て **押せない**
 
-### 戦略：E2Eは「少数精鋭」
+E2E テストは、**「アプリ全体が本物のブラウザで本当に動くか」** を守る最後の砦。
 
-E2Eは遅く、壊れやすい。だから **数を絞る**。
+> **Playwright とは**：Microsoft が作っている E2E テストの道具。Chromium・Firefox・WebKit（Safari の中身）を自動で操作できる。
 
-- 単体・結合：数十〜数百本（細かい仕様を守る）
-- E2E：数本（「ユーザーの最重要動線」だけを守る）
+### E2E は「少なく、大事なところだけ」
 
-TODOアプリなら「追加して、表示されて、削除できる」の1本がまず書くべきE2E。
+E2E テストは遅く、ちょっとした変更で壊れやすい。だから **数を絞る**。
+
+- Jest のテスト：数十〜数百本（細かい仕様を守る）
+- E2E テスト：数本（**利用者にとって一番大事な操作の流れ** だけを守る）
 
 ##  本題
 
-### 1. インストール
+### 1. Playwright を入れる
 
 ```bash
 cd ~/workspace/todo-app
-npm init playwright@latest
+git switch main
+git pull
+git switch -c test/e2e
+
+npm install -D @playwright/test
+npx playwright install --with-deps chromium
 ```
 
-対話形式で聞かれる。以下を選ぶ：
+- `@playwright/test`：E2E テストを書いて実行する本体
+- `npx playwright install --with-deps chromium`：テストで使う Chromium と、WSL2（Ubuntu）で動かすのに必要なライブラリを入れる（パスワードを聞かれたら入力する）
 
-- テストの場所 → `e2e`（`tests` だとVitestのファイルと混ざりやすいため）
-- GitHub Actions workflow → **false**（後で自分で書く。中身を理解するため）
-- ブラウザのインストール → **true**
+### 2. 設定ファイルを作る
 
-WSL2ではブラウザの動作に必要なライブラリが不足していることがある。エラーが出たら：
+プロジェクト直下に `playwright.config.mjs` を作る。
 
-```bash
-sudo npx playwright install-deps chromium
-```
-
-### 2. 設定：テスト前にdevサーバを自動起動させる
-
-`playwright.config.js` を開き、`webServer` と `baseURL` を設定する。
-
-```javascript
-// playwright.config.js（要点のみ）
+```js
+// playwright.config.mjs
 import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './e2e',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  reporter: 'html',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
   },
-  projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-  ],
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: process.env.CI ? 'npm run build && npm run start' : 'npm run dev',
+    url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
   },
 })
 ```
 
-- **`webServer`**：テスト実行前にViteを自動起動し、終わったら止めてくれる。「サーバ起動を忘れてテストが全滅」を防ぐ
-- **`reuseExistingServer: !process.env.CI`**：ローカルでは起動済みサーバを再利用、CIでは必ず新規起動
-- **`trace: 'on-first-retry'`**：失敗時に操作の記録（後述のトレース）を残す
+| 設定 | 意味 |
+|------|------|
+| `testDir: './e2e'` | E2E テストは `e2e/` フォルダに置く |
+| `baseURL` | `page.goto('/')` と書いたときの URL の先頭 |
+| `webServer.command` | テストの前にアプリを起動するコマンド。**CI では本番と同じ `build` → `start`**、手元では速い `dev` |
+| `reuseExistingServer` | 手元ですでに `npm run dev` が動いていれば、それを使う |
+| `retries` | CI では、失敗したテストを2回までやり直す（E2E はたまたま失敗することがあるため） |
+| `trace: 'on-first-retry'` | やり直したときに、操作の記録（トレース）を残す |
+| `forbidOnly` | CI では `test.only`（そのテストだけ実行する書き方）の消し忘れをエラーにする |
 
-> **ここの `npm run dev` に `-- --host` が要らない理由**：この教材で `--host` を付けてきたのは **Windows側のブラウザ** からWSL2内のサーバを見るため。E2Eではブラウザ自体がWSL2の中で動くので、localhostのままで届く。
+> GitHub Actions のランナーでは、環境変数 `CI` が最初から設定されている（コマ17）。
 
-### 3. 最初のE2Eテストを書く
+### 3. Jest と E2E を分ける
 
-サンプルとして生成された `e2e/example.spec.js` は削除し、自分のテストを書く。
+Jest は `.test.js` だけでなく `.spec.js` も探すので、E2E テストのファイルまで実行しようとしてしまう。`jest.config.mjs` で `e2e/` を除外する。
 
-```javascript
-// e2e/todo.spec.js
-import { test, expect } from '@playwright/test'
+```js
+// jest.config.mjs（config に追加）
+  testPathIgnorePatterns: ['<rootDir>/e2e/'],
+```
 
-test.describe('TODOアプリ', () => {
-  test('追加 → 表示 → 削除 の基本動線が動く', async ({ page }) => {
-    await page.goto('/')
+Playwright が作るフォルダを、Git・ESLint・Prettier の対象から外す。
 
-    // 追加
-    await page.getByRole('textbox').fill('E2Eから追加したTODO')
-    await page.getByRole('button', { name: '追加' }).click()
+```bash
+printf '\n# Playwright\n/test-results/\n/playwright-report/\n/blob-report/\n/playwright/.cache/\n' >> .gitignore
+printf 'playwright-report\ntest-results\n' >> .prettierignore
+```
 
-    // 表示確認
-    await expect(page.getByText('E2Eから追加したTODO')).toBeVisible()
+```js
+// eslint.config.mjs（globalIgnores の中に追加）
+    'playwright-report/**',
+    'test-results/**',
+```
 
-    // 削除
-    await page.getByRole('button', { name: '削除' }).click()
-    await expect(page.getByText('E2Eから追加したTODO')).not.toBeVisible()
-  })
+実行するコマンドを追加する。
 
-  test('空入力では追加されない', async ({ page }) => {
-    await page.goto('/')
-    await page.getByRole('button', { name: '追加' }).click()
-    await expect(page.getByRole('listitem')).toHaveCount(0)
-  })
+```bash
+npm pkg set scripts.test:e2e="playwright test"
+```
+
+### 4. 最初の E2E テスト
+
+```bash
+mkdir -p e2e
+```
+
+```js
+// e2e/todo.spec.mjs
+import { expect, test } from '@playwright/test'
+
+test('TODO を追加・完了・削除できる', async ({ page }) => {
+  await page.goto('/')
+  const input = page.getByRole('textbox', { name: 'やること' })
+
+  await input.fill('牛乳を買う')
+  await input.press('Enter')
+  await input.fill('レポート提出')
+  await input.press('Enter')
+  await expect(page.getByRole('listitem')).toHaveCount(2)
+  await expect(page.getByText('残り 2 件')).toBeVisible()
+
+  await page.getByRole('checkbox', { name: '牛乳を買う' }).check()
+  await expect(page.getByText('残り 1 件')).toBeVisible()
+
+  await page.getByRole('button', { name: 'レポート提出を削除' }).click()
+  await expect(page.getByRole('listitem')).toHaveCount(1)
 })
 ```
 
-見覚えのある書き方のはず。**`getByRole` はRTL（コマ9〜10）と同じ思想**：「ユーザーから見えるもの（役割・ラベル）」で要素を探す。RTLで身につけた習慣がそのまま活きる。
+見覚えのある書き方のはず。**`getByRole` は RTL（コマ10）と同じ考え方**：利用者に見える役割と名前で要素を探す。コマ5で `aria-label` を付けておいたおかげで、E2E でもそのまま使える。
 
-> **`await expect(...)` に注目**：Playwrightの `expect` は **自動リトライ** する。「要素がまだ出てない」場合も数秒待ってくれるので、RTLの `findBy` に相当する待ち処理が組み込みになっている。
+| RTL（コマ10〜11） | Playwright |
+|------------------|-----------|
+| `screen.getByRole(...)` | `page.getByRole(...)` |
+| `await user.type(input, '...')` | `await input.fill('...')` |
+| `await user.click(button)` | `await button.click()` |
+| `expect(...).toBeInTheDocument()` | `await expect(...).toBeVisible()` |
+| `await screen.findBy...`（待つ） | `await expect(...)` が **自動で待つ** |
 
-### 4. 実行
-
-```bash
-npx playwright test
-```
-
-Viteが自動起動し、ヘッドレス（画面なし）のChromiumでテストが走る。
-
-**ブラウザの動きを目で見たいとき**（Windows 11のWSL2はGUIアプリをそのまま表示できる）：
+> **`await expect(...)` は自動で待つ**：Playwright の `expect` は、条件を満たすまで最大5秒くり返し確かめてくれる。RTL の `findBy` に当たる待ちが、最初から組み込まれている。
 
 ```bash
-npx playwright test --headed
+npm run test:e2e
 ```
 
-**UIモード**（テストを1ステップずつ再生できる。デバッグに最強）：
+```text
+Running 1 test using 1 worker
+  1 passed (4.2s)
+```
+
+### 5. E2E でしか確かめられないことを書く
+
+Jest では確かめにくかったことを E2E で書く。
+
+```js
+// e2e/todo.spec.mjs（追加）
+test('再読み込みしても TODO が残る', async ({ page }) => {
+  await page.goto('/')
+  const input = page.getByRole('textbox', { name: 'やること' })
+  await input.fill('保存されるTODO')
+  await input.press('Enter')
+
+  await page.reload()
+
+  await expect(page.getByRole('checkbox', { name: '保存されるTODO' })).toBeVisible()
+})
+
+test('async な Server Component のページも表示できる', async ({ page }) => {
+  await page.goto('/tips')
+
+  await expect(page.getByRole('heading', { name: 'TODOのコツ' })).toBeVisible()
+  await expect(page.getByRole('listitem')).toHaveCount(3)
+})
+```
+
+- **1つ目**：本物のブラウザの localStorage に保存し、本当に再読み込みする。Jest では「部品を消してもう一度描く」ことで近いことをしたが、E2E なら **利用者の操作そのもの** で確かめられる
+- **2つ目**：コマ13で「Jest では描画できない、E2E を推奨」とされた async な Server Component のページ
+
+> **テストごとに localStorage は空から始まる**：Playwright はテストごとに新しいブラウザの状態（コンテキスト）を作るので、前のテストの TODO は残らない。コマ11の `beforeEach(() => localStorage.clear())` に当たることを自動でやってくれる。
+
+### 6. 通信を差し替える
+
+「サンプルを読み込む」のテストでは、本物の JSONPlaceholder に通信したくない。Playwright の **`page.route`** で、ブラウザの通信を差し替えられる。
+
+```js
+// e2e/todo.spec.mjs（追加）
+test('サンプルを読み込める（通信を差し替える）', async ({ page }) => {
+  await page.route('https://jsonplaceholder.typicode.com/todos**', (route) =>
+    route.fulfill({ json: [{ userId: 1, id: 1, title: 'E2Eで差し替えたTODO', completed: false }] }),
+  )
+  await page.goto('/')
+
+  await page.getByRole('button', { name: 'サンプルを読み込む' }).click()
+
+  await expect(page.getByText('E2Eで差し替えたTODO')).toBeVisible()
+})
+```
+
+`**` は「その後ろに何が続いてもよい」という意味（`?_limit=3` を含めて一致させるため）。
+
+### 7. 失敗したときの調べ方
+
+期待する文字をわざと間違えて、失敗させてみる。
+
+```js
+await expect(page.getByText('残り 3 件')).toBeVisible()   // 本当は 2 件
+```
+
+```bash
+npm run test:e2e
+npx playwright show-report
+```
+
+HTML のレポートが開き、**失敗した時点の画面のスクリーンショット** と、エラーの行が表示される。
+
+さらに便利なのが **UI モード**。
 
 ```bash
 npx playwright test --ui
 ```
 
-失敗したときはHTMLレポートを開く：
+テストを1ステップずつ再生しながら、そのときの画面と HTML を見られる（Windows 11 の WSL2 なら、ウインドウがそのまま Windows 側に表示される）。確かめたら、テストを元に戻す。
 
-```bash
-npx playwright show-report
-```
+### 8. CI/CD パイプラインに組み込む
 
-### 5. CIに組み込む
-
-コマ16のCIとは **別ワークフロー** にする。E2Eは遅いので、まず分けて様子を見るのが安全。
+コマ23の `ci.yml` に `e2e` ジョブを追加し、**E2E も通ってから** Pages に公開されるようにする。
 
 ```yaml
-# .github/workflows/e2e.yml
-name: E2E
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-
-jobs:
+# .github/workflows/ci.yml（jobs の中、build の後に追加）
   e2e:
+    needs: [lint, test]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers
+      - run: npm ci
+      - name: Playwright のブラウザを入れる
         run: npx playwright install --with-deps chromium
-
-      - name: Run E2E tests
-        run: npx playwright test
-
-      - name: Upload report on failure
-        uses: actions/upload-artifact@v4
+      - name: E2E テスト
+        run: npm run test:e2e
+      - name: レポートを保存
         if: failure()
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
 ```
 
-コマ16との違いに注目：
+`pages-build` の `needs` を変えて、E2E が通らないと公開しないようにする。
 
-- **`npx playwright install --with-deps chromium`**：CIのマシンは毎回まっさら（コマ13）なので、ブラウザも毎回インストールする
-- **`timeout-minutes: 15`**：E2Eは無限に固まることがある。上限を切っておく
-- **`if: failure()`**：失敗したときだけレポートをアーティファクトとして保存。ActionsのSummaryページからダウンロードして `npx playwright show-report ダウンロードしたフォルダ` で開ける
+```yaml
+  pages-build:
+    needs: [build, e2e]
+```
 
-わざとテストを失敗させて（`'E2Eから追加したTODO'` を別の文字列に変えるなど）、レポートがアップロードされるところまで確認しておくと、本当に困ったときに慌てない。
+| 部分 | 意味 |
+|------|------|
+| `npx playwright install --with-deps chromium` | ランナーは毎回まっさらなので、ブラウザも毎回入れる |
+| `timeout-minutes: 15` | E2E は固まることがある。上限を決めておく |
+| `if: failure()` | **失敗したときだけ** レポートを保存する |
+
+```bash
+npm run lint
+npm test
+npm run test:e2e
+git add .
+git commit -m "test: PlaywrightのE2Eテストを追加し、CIに組み込む"
+git push -u origin test/e2e
+gh pr create --fill
+gh pr checks --watch
+```
+
+PR のチェックに `CI/CD / e2e` が加わる。マージしたら、ルールセット（コマ18）の必須チェックに **`e2e` も追加** する。
+
+```text
+                    ┌──────┐   ┌──────┐
+PR / main に push → │ lint │   │ test │
+                    └──┬───┘   └──┬───┘
+                   ┌───┴──────────┴───┐
+                ┌──┴───┐          ┌───┴──┐
+                │build │          │ e2e  │
+                └──┬───┘          └──┬───┘
+                   └───────┬─────────┘
+                    ┌──────┴───────┐
+                    │ pages-build  │ → pages-deploy（main のときだけ）
+                    └──────────────┘
+```
+
+##  演習
+
+### 演習1（基本）：ページ移動の E2E
+
+「ヘッダーの『このアプリについて』をクリックすると `/about` に移動し、見出しが表示され、そのリンクが現在のページ（`aria-current="page"`）になる」E2E テストを書く。
+
+**確認方法**：テストが通り、`Header.js` の `aria-current` を消すと失敗すればOK（確かめたら戻す）。
+
+<details>
+<summary>解答例</summary>
+
+```js
+test('ヘッダーからページを移動できる', async ({ page }) => {
+  await page.goto('/')
+
+  await page.getByRole('link', { name: 'このアプリについて' }).click()
+
+  await expect(page).toHaveURL(/\/about$/)
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('このアプリについて')
+  await expect(page.getByRole('link', { name: 'このアプリについて' })).toHaveAttribute('aria-current', 'page')
+})
+```
+
+</details>
+
+### 演習2（基本）：失敗したときのレポートを CI から取ってくる
+
+わざと失敗する E2E テストを PR で push し、CI の `e2e` ジョブが赤くなることを確かめる。Actions の実行ページから `playwright-report` をダウンロードして開く。
+
+```bash
+gh run download <実行のID> -n playwright-report -D /tmp/playwright-report
+npx playwright show-report /tmp/playwright-report
+```
+
+**確認方法**：CI で失敗した時点のスクリーンショットとトレースを、手元のレポートで見られればOK。確かめたらテストを直す。
+
+### 演習3（応用）：404 ページと、ビルドでだけ起きる問題
+
+1. 存在しない URL（`/abc`）を開くと、自作の 404 ページが表示される E2E テストを書く
+2. コマ24の事件5（`app/page.js` で `TodoAppClient` ではなく `TodoApp` を直接 import する）をわざと起こし、`CI=1 npm run test:e2e`（本番ビルドで実行）で E2E がどうなるか確かめる
+
+**確認方法**：1 のテストが通る。2 では `npm run build` の段階で失敗し、E2E が始まらないことを確かめる（確かめたら戻す）。
+
+> 2 のように、E2E は「ビルドできて、起動できて、表示できる」ことまで含めて確かめている。
+
+### 演習4（早く終わった人向け）：公開した URL に E2E を実行する
+
+デプロイした GitHub Pages や Vercel の URL に対して、E2E テストを実行できるようにする。
+
+**確認方法**：`BASE_URL=https://ユーザー名.github.io/todo-app npm run test:e2e` のように実行すると、手元のサーバを起動せずに、公開中のサイトでテストが通ればOK。
+
+<details>
+<summary>ヒント</summary>
+
+- `baseURL: process.env.BASE_URL ?? 'http://localhost:3000'` にする
+- `BASE_URL` があるときは `webServer` を使わない（`webServer: process.env.BASE_URL ? undefined : { ... }`）
+- GitHub Pages は `/todo-app/` の下なので、`page.goto('/')` だと `https://ユーザー名.github.io/` に行ってしまう。`page.goto('./')` のように **相対パス** で書き、`BASE_URL` の末尾に `/` を付ける
+- デプロイの直後に公開中のサイトを確かめるテストを **スモークテスト** と呼ぶ
+
+</details>
 
 ##  まとめ
 
 ### 今日できるようになったこと
 
-- E2Eテストの位置づけ（少数精鋭で最重要動線を守る）を説明できる
-- Playwright + webServer設定で、コマンド1発のE2E実行環境を作れる
-- E2EをCIに組み込み、失敗時のレポートを回収できる
+- E2E テストの役割（本物のブラウザで、アプリ全体の一番大事な流れを守る）を説明できるようになった
+- Playwright で、localStorage・async な Server Component・通信の差し替えを含む E2E テストを書けるようになった
+- E2E を CI/CD パイプラインに組み込み、E2E が通らないと公開されないようにできた
 
 ### よくある詰まりポイント
 
-- **ローカルで `browserType.launch` エラー**：WSL2の依存ライブラリ不足。`sudo npx playwright install-deps chromium`
-- **CIだけタイムアウトする**：CIマシンはローカルより遅い。`webServer` の起動待ち（`url` 指定）が正しいか、`timeout-minutes` が短すぎないかを確認
-- **セレクタが見つからない**：`getByRole('button', { name: '追加' })` の `name` はボタンの表示文字列と完全一致が基本。`npx playwright test --ui` で実際のDOMを見ながら直すのが早い
+- **`browserType.launch` で失敗する**：WSL2 にブラウザ用のライブラリが足りない。`npx playwright install --with-deps chromium` をもう一度実行する
+- **Jest が `e2e/` のファイルを実行してエラーになる**：`jest.config.mjs` の `testPathIgnorePatterns` に `'<rootDir>/e2e/'` を入れる
+- **`getByRole('alert')` が別の要素に一致する**：Next.js はページ移動を読み上げソフトに伝えるための要素（`role="alert"`）を自動で置いている。`page.getByRole('alert').filter({ hasText: '...' })` のように文字で絞り込む
+- **CI でだけ時間切れになる**：CI では `build` から始めるので時間がかかる。`webServer.timeout` と `timeout-minutes` を確認する
 
 ### 次の一歩
 
-発展3（MSW）と組み合わせると、外部APIに依存しないE2Eが書ける。発展5（CI/CD強化）のキャッシュ最適化はE2Eワークフローの高速化にも効く。個人制作アプリに「最重要動線のE2E 1本」を足すと、発表時に「E2EまでCIで回してます」と言える。
+個人制作のアプリにも「一番大事な流れ」の E2E を1本入れよう。発表で「本物のブラウザでのテストまで CI で自動化しています」と言えるようになる。
 
 ##  課題
 
 ### 基礎課題（必須）
 
-1. TODOアプリに「追加→表示→削除」のE2Eテストを書き、ローカルでPASSさせる
-2. `e2e.yml` を追加したPRを作り、Actionsで E2E が緑になることを確認してマージする
+1. 本題の E2E テスト（4本）と演習1を完成させ、`e2e` ジョブ付きの CI をマージする
+2. ルールセットの必須チェックに `e2e` を追加する
 
 ### 応用課題（推奨）
 
-3. **完了チェックの動線** のE2Eを1本追加する（チェック→取り消し線が付く→再チェックで戻る）
-4. わざと失敗するテストをpushして、アーティファクトのHTMLレポートをダウンロード→ `npx playwright show-report` で開き、失敗時のスクリーンショットとトレースを確認する（確認後、テストは元に戻す）
+3. 「完了済みを削除」「絞り込み」など、自分で追加した機能の E2E を1本書く。**本当に E2E が必要か**（Jest で十分ではないか）も考えて、理由を PR に書く
+4. 演習2を完成させる
 
 ### チャレンジ課題（挑戦）
 
-5. `projects` に `firefox` を追加し、2ブラウザでテストを走らせる。CIの実行時間がどれだけ伸びるかを計測し、「全ブラウザで回す価値があるか」を自分なりに判断する
-6. デプロイ済みの本番URL（GitHub Pages / Vercel）に対してE2Eを実行する設定を調べて試す（ヒント：`baseURL` を環境変数で切り替え、`webServer` をスキップ）。「デプロイ後の自動動作確認（スモークテスト）」という考え方を知る
+5. `projects` に Firefox と WebKit を追加し、3つのブラウザで E2E を実行する。CI の時間がどれくらい延びるかを測り、「全部のブラウザで毎回実行する価値があるか」を判断する
+6. 演習4のスモークテストを、`pages-deploy` ジョブの **後に** 動く `smoke` ジョブとして CI/CD に組み込む（`needs: pages-deploy`）。デプロイした直後の本番サイトを自動で確かめられるようになる

@@ -1,4 +1,4 @@
-// src/mocks/fixtures/pokemon.js
+// mocks/fixtures/pokemon.js
 // PokeAPI（https://pokeapi.co）の応答から、この教材で使う項目だけを抜粋した偽データ
 
 export const pokemonData = {
@@ -60,8 +60,7 @@ export const speciesData = {
     flavor_text_entries: [
       {
         language: { name: 'ja' },
-        flavor_text:
-          'ほっぺの　でんきぶくろに　でんきを　ためる。おこると　ほうでんする。',
+        flavor_text: 'ほっぺの　でんきぶくろに　でんきを　ためる。おこると　ほうでんする。',
       },
     ],
   },
@@ -71,8 +70,7 @@ export const speciesData = {
     flavor_text_entries: [
       {
         language: { name: 'ja' },
-        flavor_text:
-          'くちから　しゃくねつの　ほのおを　はく。たたかいの　けいけんを　つむほど　ほのおは　あつくなる。',
+        flavor_text: 'くちから　しゃくねつの　ほのおを　はく。たたかいの　けいけんを　つむほど　ほのおは　あつくなる。',
       },
     ],
   },

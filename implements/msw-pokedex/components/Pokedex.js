@@ -1,10 +1,12 @@
-// src/pokedex/Pokedex.jsx
+'use client'
+
+// components/Pokedex.js
 import { useState } from 'react'
-import { fetchPokemon } from './pokeApi'
+import { fetchPokemon } from '@/lib/pokeApi'
 import PokemonCard from './PokemonCard'
 import './pokedex.css'
 
-function Pokedex() {
+export default function Pokedex() {
   const [input, setInput] = useState('')
   // idle（初期）→ loading → success か error、の4状態を1つのstateで持つ
   const [status, setStatus] = useState('idle')
@@ -54,5 +56,3 @@ function Pokedex() {
     </div>
   )
 }
-
-export default Pokedex

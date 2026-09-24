@@ -3,236 +3,396 @@
 | 項目 | 内容 |
 |------|------|
 | フェーズ | 発展編（任意） |
-| 所要時間 |  |
-| 前提コマ | Phase 1 修了（コマ5 TODOアプリ実装②まで） |
+| 所要時間 | 90分 |
+| 前提コマ | Phase 2 修了（コマ13 カバレッジとNext.jsのテスト戦略まで） |
 | 次コマ | なし（発展編は興味のある順に取り組んでよい） |
 
 ##  目標
 
-- ユーティリティファーストという考え方を説明できる
-- Tailwind CSS v4 をViteプロジェクトに導入できる
-- TODOアプリの見た目を、CSSファイルをほぼ書かずに整えられる
+- 「ユーティリティファースト」という考え方を説明できる
+- Tailwind CSS v4 を Next.js のプロジェクトに導入し、`todo-app` の見た目を整えられる
+- 見た目を変えたときに壊れるテストを、「見た目ではなく意味を確かめる」形に直せる
 
 ##  導入
 
-### 「動くけどダサい」問題
+### 「動くけど地味」問題
 
-TODOアプリは動く。でも見た目は素のHTMLに近い。CSSを書けばいいのだが、
+`todo-app` は動く。でも見た目は、ほぼ素の HTML。CSS を書けばよいのだが、
 
-- クラス名を考えるのが大変（`todo-list-item-container-wrapper`...？）
-- どのCSSがどこに効いているのか、規模が大きくなると追えなくなる
-- 消していいCSSか分からず、誰も消せない「CSSの墓場」ができる
+- クラス名を考えるのが大変（`todo-list-item-container`…？）
+- どの CSS がどこに効いているのか、規模が大きくなると追えなくなる
+- 消してよいか分からない CSS が増えていく
 
-これは現場でも長年の課題で、その解答のひとつが **Tailwind CSS**。
+これは現場でも長年の悩みで、その答えの1つが **Tailwind CSS**。
 
-> **Tailwind CSSとは**：`flex` `p-4` `text-lg` のような **小さな単機能クラス（ユーティリティ）を組み合わせて** デザインするCSSフレームワーク。CSSファイルをほぼ書かず、HTML（JSX）側にスタイルを書いていく。
+> **Tailwind CSS とは**：`flex`・`p-4`・`text-lg` のような **小さな単機能のクラス（ユーティリティ）を組み合わせて** デザインする CSS フレームワーク。CSS ファイルをほとんど書かず、JSX の `className` にスタイルを書いていく。
 
-### ユーティリティファーストの考え方
+### ユーティリティファースト
 
 ```jsx
-{/* 従来：クラス名を発明して、別ファイルにCSSを書く */}
+{/* これまで：クラス名を考えて、別ファイルに CSS を書く */}
 <button className="delete-button">削除</button>
 
 {/* Tailwind：用意されたクラスをその場で組み合わせる */}
-<button className="rounded bg-red-500 px-2 py-1 text-white hover:bg-red-600">削除</button>
+<button className="rounded px-2 py-1 text-sm text-red-500 hover:bg-red-50">削除</button>
 ```
 
-最初は「HTMLが汚れる」と感じるが、**コンポーネントと相性が抜群**。Reactではスタイルの再利用は「クラスの再利用」ではなく「コンポーネントの再利用」で実現できるからだ。
+最初は「JSX がごちゃごちゃする」と感じるが、**React のコンポーネントと相性がとても良い**。スタイルを使い回したいときは、クラスではなく **コンポーネントを使い回せばよい** から。
+
+> `create-next-app` の質問で「Tailwind CSS を使うか」と聞かれていたのは、これのこと。この授業では `--no-tailwind` で素の CSS から始めた。
 
 ##  本題
 
-### 1. 導入（Tailwind v4 + Vite）
+### 1. Tailwind CSS v4 を入れる
 
 ```bash
 cd ~/workspace/todo-app
-npm install tailwindcss @tailwindcss/vite
+git switch main
+git pull
+git switch -c feature/tailwind
+
+npm install -D tailwindcss @tailwindcss/postcss
 ```
 
-`vite.config.js` にプラグインを追加する。
+プロジェクト直下に `postcss.config.mjs` を作る。
 
-```javascript
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+```js
+// postcss.config.mjs
+const config = {
+  plugins: {
+    '@tailwindcss/postcss': {},
+  },
+}
 
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
-})
+export default config
 ```
 
-`src/index.css` の中身を **全部消して** 1行にする。
+> **PostCSS とは**：CSS を変換する仕組み。Next.js は CSS を読み込むときに PostCSS を通すので、そこに Tailwind を差し込んでいる。
+
+`app/globals.css` の中身を **全部消して**、次のようにする。
 
 ```css
-@import "tailwindcss";
+/* app/globals.css */
+@import 'tailwindcss';
+
+body {
+  @apply bg-gray-100 text-gray-800;
+}
 ```
 
 ```bash
-npm run dev -- --host
+npm run dev
 ```
 
-> **注意（v3とv4の違い）**：ネット上の古いチュートリアルには `tailwind.config.js` や `postcss.config.js` を作る手順が載っているが、それは **v3以前** のやり方。2025年リリースのv4では上記だけで動く。「記事の日付を確認する」癖はここでも大事。
+見た目が一度 **もっと地味になる**（Tailwind がブラウザの標準のスタイルをリセットするため）。ここから組み立てていく。
 
-素のHTMLっぽさが消えたら導入成功（Tailwindはブラウザのデフォルトスタイルをリセットするため、一時的に「地味」になる。ここから組み立てていく）。
+> **v3 と v4 の違いに注意**：ネットの古い記事には `tailwind.config.js` を作ったり、`@tailwind base;` と書いたりする手順が載っているが、それは **v3 以前** のやり方。v4 は上の手順だけで動く。記事の日付を確かめるクセをつけよう。
 
-### 2. まず1つの要素を装飾してみる
+### 2. 1つのボタンから始める
 
-追加ボタンから始める。
+`components/TodoForm.js` の「追加」ボタンにクラスを付ける。
 
 ```jsx
-<button
-  onClick={addTodo}
-  className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
->
+<button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 font-bold text-white hover:bg-blue-700">
   追加
 </button>
 ```
 
-クラス名の読み方：
+| クラス | 意味 |
+|--------|------|
+| `rounded-lg` | 角を丸くする（大きめ） |
+| `bg-blue-600` | 背景色：青（濃さ 600） |
+| `px-4 py-2` | 左右の余白 4、上下の余白 2（1 = 0.25rem = 4px） |
+| `font-bold` | 太字 |
+| `text-white` | 文字色：白 |
+| `hover:bg-blue-700` | **マウスを乗せたときだけ** 少し濃い青 |
+
+> **なぜ `600` や `4` のような決まった数字なの？** 色や余白を **決められた段階** から選ばせることで、ページ全体に統一感が出る。デザイナーがいないチームほど助かる。
+
+VS Code に **Tailwind CSS IntelliSense** 拡張機能を入れると、クラス名の補完と色のプレビューが出て、打ち間違いが減る。
+
+### 3. フォームとリストを整える
+
+```jsx
+// components/TodoForm.js（return の中）
+<form onSubmit={handleSubmit} className="mb-4 flex gap-2">
+  <input
+    type="text"
+    value={text}
+    onChange={(e) => setText(e.target.value)}
+    placeholder="やることを入力"
+    aria-label="やること"
+    className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-blue-500 focus:outline-none"
+  />
+  <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 font-bold text-white hover:bg-blue-700">
+    追加
+  </button>
+</form>
+```
+
+```jsx
+// components/TodoList.js
+import TodoItem from './TodoItem'
+
+export default function TodoList({ todos, onToggle, onDelete }) {
+  if (todos.length === 0) {
+    return <p className="py-6 text-center text-gray-500">やることはありません</p>
+  }
+
+  return (
+    <ul className="space-y-2">
+      {todos.map((todo) => (
+        <TodoItem key={todo.id} todo={todo} onToggle={onToggle} onDelete={onDelete} />
+      ))}
+    </ul>
+  )
+}
+```
+
+```jsx
+// components/TodoItem.js
+export default function TodoItem({ todo, onToggle, onDelete }) {
+  return (
+    <li className="flex items-center justify-between rounded-lg bg-white px-4 py-3 shadow-sm">
+      <label className={`flex items-center gap-3 ${todo.done ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+        <input type="checkbox" checked={todo.done} onChange={() => onToggle(todo.id)} className="size-5 accent-blue-600" />
+        {todo.text}
+      </label>
+      <button
+        onClick={() => onDelete(todo.id)}
+        aria-label={`${todo.text}を削除`}
+        className="rounded px-2 py-1 text-sm text-red-500 hover:bg-red-50 hover:text-red-700"
+      >
+        削除
+      </button>
+    </li>
+  )
+}
+```
+
+新しく出てきたクラス：
 
 | クラス | 意味 |
-|-------|------|
-| `rounded` | 角丸 |
-| `bg-blue-500` | 背景色（青・濃さ500） |
-| `px-4 py-2` | 左右パディング4・上下2（1 = 0.25rem = 4px） |
-| `text-white` | 文字色 |
-| `hover:bg-blue-600` | **ホバー時だけ** 少し濃い青 |
+|--------|------|
+| `flex` / `flex-1` / `gap-2` | 横並び、残りの幅いっぱい、間の余白 |
+| `items-center` / `justify-between` | 縦方向の中央ぞろえ、両端に寄せる |
+| `space-y-2` | 子要素の **間** にだけ縦の余白 |
+| `focus:border-blue-500` | 入力中（フォーカス中）だけ枠を青に |
+| `line-through` | 打ち消し線 |
 
-> **なぜ数値が `500` や `4` なのか**：Tailwindは色や余白を **決められた段階（スケール）** から選ばせる。自由な値を禁止することで、ページ全体の色・余白に統一感が生まれる。デザイナーがいないチームほど恩恵が大きい。
+**条件によってスタイルを変える** ときは、コマ4でやったように **三項演算子でクラスの文字列を切り替える**。
 
-### 3. TODOアプリ全体をレイアウトする
+### 4. テストが落ちる：見た目ではなく意味を確かめる
 
-`App.jsx` の構造にクラスを足していく。
+```bash
+npm test
+```
+
+```text
+● 完了済みならチェックがオンで、打ち消し線が付く
+    expect(element).toHaveStyle()
+    - Expected
+    - textDecoration: line-through;
+```
+
+コマ10で書いた `TodoItem` のテストが失敗する。打ち消し線を `style={{ textDecoration: ... }}` から Tailwind の `line-through` クラスに変えたので、**style 属性がなくなった** から。jsdom は Tailwind の CSS を読み込まないので、クラスから見た目を計算することもできない。
+
+直し方は2つある。
+
+| 直し方 | 書き方 | 考え方 |
+|--------|--------|--------|
+| クラスを確かめる | `expect(label).toHaveClass('line-through')` | 手軽。ただしクラス名（見た目の実装）に依存する |
+| 意味を確かめる | `expect(checkbox).toBeChecked()` だけにする | 「完了している」ことはチェックボックスの状態で分かる。見た目は変えても壊れない |
+
+ここでは、**完了状態はチェックボックスで確かめ、打ち消し線はクラスで確かめる** ことにする。
 
 ```jsx
-function App() {
-  // ...state等はそのまま...
+// components/TodoItem.test.js（変更部分）
+expect(screen.getByText('牛乳を買う')).toHaveClass('line-through')
+```
 
+```jsx
+// 未完了のテスト
+expect(screen.getByText('牛乳を買う')).not.toHaveClass('line-through')
+```
+
+> **見た目の細部はテストより「目」で確かめる**：色や余白をテストで全部確かめようとすると、デザインを変えるたびにテストを直すことになる（コマ28）。見た目は Vercel のプレビュー URL で人が確かめ、テストは **ユーザーにとっての意味**（チェックされているか、表示されているか）を中心に書く。
+
+```bash
+npm test
+```
+
+### 5. ページ全体のレイアウト
+
+```jsx
+// app/page.js
+import TodoAppClient from '@/components/TodoAppClient'
+
+export default function Home() {
   return (
-    <div className="mx-auto mt-10 max-w-md rounded-lg bg-white p-6 shadow-md">
-      <h1 className="mb-4 text-2xl font-bold text-gray-800">TODOアプリ</h1>
-
-      <div className="mb-4 flex gap-2">
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          className="flex-1 rounded border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-          placeholder="やることを入力"
-        />
-        <button
-          onClick={addTodo}
-          className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-        >
-          追加
-        </button>
-      </div>
-
-      <ul className="space-y-2">
-        {todos.map((todo) => (
-          <li
-            key={todo.id}
-            className="flex items-center justify-between rounded bg-gray-50 px-3 py-2"
-          >
-            <span className={todo.done ? 'text-gray-400 line-through' : ''}>
-              {todo.text}
-            </span>
-            <button
-              onClick={() => deleteTodo(todo.id)}
-              className="text-sm text-red-500 hover:text-red-700"
-            >
-              削除
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <main className="mx-auto mt-6 max-w-xl px-4 md:mt-10">
+      <h1 className="mb-6 text-2xl font-bold">TODOアプリ</h1>
+      <TodoAppClient />
+    </main>
   )
 }
 ```
 
-新出クラスの要点：
+- **`mx-auto max-w-xl`**：幅を制限して、左右中央に寄せる
+- **`mt-6 md:mt-10`**：スマホでは上の余白 6、**画面幅 768px 以上（`md:`）では 10**
 
-- **`mx-auto max-w-md`**：幅を制限して中央寄せ。カード型レイアウトの定番
-- **`flex gap-2` / `flex-1`**：コマ3で学んだ「横並び＋残り幅いっぱい」がクラス2つで済む
-- **`space-y-2`**：子要素の **間** にだけ縦の余白。リストで多用する
-- **`line-through`**：完了済みTODOに取り消し線。**条件付きスタイルは三項演算子でクラス文字列を切り替える** のがReact + Tailwindの基本形
+Tailwind は **スマホ向けのスタイルを先に書き、広い画面のときだけ `md:`・`lg:` で上書きする**（**モバイルファースト**）。
 
-背景もつけたい場合は `index.css` に追記：
+ヘッダーも整える。コマ6の `.header` や `.nav-link` の CSS は消えたので、クラスで書き直す。
 
-```css
-@import "tailwindcss";
+```jsx
+// components/Header.js（return の中）
+<header className="bg-slate-900 px-4 py-3">
+  <div className="mx-auto flex max-w-xl flex-wrap items-center gap-x-6 gap-y-2">
+    <span className="font-bold text-white">{appName}</span>
+    <nav className="flex gap-4">
+      {links.map((link) => {
+        const isCurrent = isCurrentPath(pathname, link.href)
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={isCurrent ? 'font-bold text-white' : 'text-slate-300 hover:text-white'}
+            aria-current={isCurrent ? 'page' : undefined}
+          >
+            {link.label}
+          </Link>
+        )
+      })}
+    </nav>
+  </div>
+</header>
+```
 
-body {
-  background-color: #f3f4f6;
+ブラウザの開発者ツール（F12）の **デバイスツールバー**（スマホのアイコン）で、スマホの幅でも崩れないことを確かめる。
+
+```bash
+npm run lint
+npm test
+npm run build
+git add .
+git commit -m "style: Tailwind CSSで見た目を整える"
+git push -u origin feature/tailwind
+gh pr create --fill
+```
+
+**Vercel のプレビュー URL** で、PC とスマホの両方で見た目を確かめてからマージする。
+
+##  演習
+
+### 演習1（基本）：残りの部品を整える
+
+`TodoApp.js` の「残り ○ 件」と「すべて削除」ボタン、`SampleLoader.js`、`Footer.js`、`app/about/page.js` にクラスを付けて、全体の見た目をそろえる。
+
+**確認方法**：どのページも、素の HTML っぽさがなくなっていればOK。`npm test` も通ること。
+
+<details>
+<summary>例：残り件数とすべて削除</summary>
+
+```jsx
+<div className="mt-4 flex items-center justify-between text-sm">
+  <p className="text-gray-600">残り {remaining} 件</p>
+  <button
+    onClick={clearAll}
+    disabled={todos.length === 0}
+    className="rounded-lg border border-red-300 px-3 py-1 text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+  >
+    すべて削除
+  </button>
+</div>
+```
+
+`disabled:` は、ボタンが押せないときだけ効くスタイル。
+
+</details>
+
+### 演習2（基本）：使わなくなった CSS を片付ける
+
+`app/globals.css` や `*.module.css` に、使われなくなったクラスが残っていないか探して消す。
+
+**確認方法**：`grep -rn "className=\"\(header\|nav-link\|container\)" app components` で古いクラス名が見つからず、画面の見た目も崩れていなければOK。
+
+> Tailwind のクラスは、**使われているものだけ** がビルド後の CSS に含まれる。JSX から消せばスタイルも消えるので、「消してよいか分からない CSS」が生まれにくい。
+
+### 演習3（応用）：ボタンをコンポーネントにする
+
+同じクラスの組み合わせを何度も書いているボタンを `components/Button.js` にまとめる。`variant` の props で「青（`primary`）」と「赤い枠（`danger`）」を切り替えられるようにし、それ以外の props（`onClick`・`disabled`・`type` など）はそのまま `<button>` に渡す。
+
+**確認方法**：「追加」と「すべて削除」が `Button` で書かれ、見た目が変わらず、`npm test` が通ればOK。
+
+<details>
+<summary>解答例</summary>
+
+```jsx
+// components/Button.js
+const variants = {
+  primary: 'bg-blue-600 font-bold text-white hover:bg-blue-700',
+  danger: 'border border-red-300 text-red-600 hover:bg-red-50',
 }
-```
 
-### 4. レスポンシブ対応
-
-Tailwindは **プレフィックスを付けるだけ** で画面幅ごとのスタイルを書ける。
-
-```jsx
-<div className="mx-auto mt-4 max-w-full p-4 md:mt-10 md:max-w-md md:p-6">
-```
-
-- プレフィックスなし（`mt-4`）＝ **スマホを含む全サイズ** に適用
-- **`md:`**（`md:mt-10`）＝ 画面幅768px以上のときだけ上書き
-
-> **モバイルファーストとは**：まずスマホ向けを書き、広い画面のときだけ `md:` `lg:` で上書きしていく設計。Tailwindはこの方式を前提にしている。
-
-ブラウザの開発者ツール（F12 → デバイスツールバー）でスマホ幅にして確認する。
-
-### 5. 繰り返しはコンポーネントで消す
-
-同じクラスの羅列を何度も書きたくなったら、CSSではなく **コンポーネント化** で解決する。
-
-```jsx
-// src/Button.jsx
-function Button({ children, ...props }) {
+export default function Button({ variant = 'primary', className = '', ...props }) {
   return (
     <button
-      className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+      className={`rounded-lg px-4 py-2 disabled:cursor-not-allowed disabled:opacity-40 ${variants[variant]} ${className}`}
       {...props}
-    >
-      {children}
-    </button>
+    />
   )
 }
-
-export default Button
 ```
 
-コマ3の「コンポーネント設計」がスタイルの再利用にもそのまま効く、というのがReact + Tailwindの気持ちよさ。
+```jsx
+<Button type="submit">追加</Button>
+<Button variant="danger" onClick={clearAll} disabled={todos.length === 0}>
+  すべて削除
+</Button>
+```
+
+`...props` は **残りの props をまとめて受け取る**（残余引数）書き方で、`{...props}` でそのまま渡している。`children` もこの中に入っている。
+
+</details>
+
+### 演習4（早く終わった人向け）：ダークモード
+
+主な要素に `dark:` のクラス（例：`bg-white dark:bg-slate-800`）を付け、OS のダークモードに合わせて色が変わるようにする。
+
+**確認方法**：開発者ツールの「Rendering」タブ → **Emulate CSS media feature prefers-color-scheme** を `dark` にすると、画面が暗い配色になればOK。
 
 ##  まとめ
 
 ### 今日できるようになったこと
 
-- Tailwind v4 をViteに導入し、ユーティリティクラスでUIを組める
-- `hover:` `md:` などのプレフィックスで状態・画面幅ごとのスタイルを書ける
-- スタイルの再利用をコンポーネント化で実現できる
+- Tailwind CSS v4 を `@tailwindcss/postcss` で Next.js に導入できた
+- ユーティリティクラスと `hover:`・`md:`・`disabled:` などで、状態や画面幅ごとのスタイルを書けるようになった
+- 見た目の変更で壊れたテストを、「意味を確かめる」形に直せるようになった
 
 ### よくある詰まりポイント
 
-- **クラスを書いても効かない**：クラス名のタイポが最多（`bg-blue-500` を `bg-blue500` 等）。エディタに **Tailwind CSS IntelliSense** 拡張を入れると補完と色プレビューが出て激減する
-- **古い記事の手順と混ざる**：`tailwind.config.js` が必要と書いてある記事はv3。v4では原則不要
+- **クラスを書いても効かない**：クラス名の打ち間違い（`bg-blue600` など）が一番多い。IntelliSense 拡張機能を入れる。`postcss.config.mjs` がプロジェクト直下にあるかも確認する
+- **クラスを文字列の組み立てで作ると効かない**：`` `bg-${color}-500` `` のように **部品に分けた書き方** は、Tailwind がクラスを見つけられない。`'bg-red-500'` のように完全な名前で書く
+- **古い記事の手順と混ざる**：`tailwind.config.js` や `@tailwind base;` が出てくる記事は v3 のもの
 
 ### 次の一歩
 
-個人制作アプリ（Phase 5）のUIをTailwindで作り直すと発表映えする。ダークモード対応（チャレンジ課題）まで行くと完成度が一段上がる。
+個人制作のアプリの見た目を Tailwind で作り直すと、発表の印象が大きく変わる。新しいプロジェクトなら、`create-next-app` で `--no-tailwind` を付けなければ最初から Tailwind 入りになる。
 
 ##  課題
 
 ### 基礎課題（必須）
 
-1. TODOアプリの全要素にTailwindでスタイルを当て、ビフォー・アフターのスクリーンショットを撮る
-2. ブランチを切って作業し、PRを作ってマージする（CIが通ることも確認）
+1. `todo-app` 全体を Tailwind で整え、変更前後のスクリーンショットを PR に貼ってマージする
+2. スマホの幅（375px）と PC の幅（1280px）の両方で崩れないことを確かめ、`md:` を1か所以上使う
 
 ### 応用課題（推奨）
 
-3. **完了/未完了の切り替えチェックボックス** にもスタイルを当て、完了時は行全体の背景色も変える（`bg-green-50` など）
-4. スマホ幅（375px）とPC幅（1280px）の両方でレイアウトが破綻しないことを確認し、`md:` を最低1箇所使う
+3. 演習3の `Button` コンポーネントにテストを書く（`variant="danger"` のときに押せること、`disabled` のときに押せないこと）。クラス名ではなく **振る舞い** を確かめる
+4. 完了した TODO の行全体の背景色を変える（`bg-green-50` など）
 
 ### チャレンジ課題（挑戦）
 
-5. **ダークモード対応**：`dark:` プレフィックス（例：`bg-white dark:bg-gray-800`）を主要な要素に追加する。OSのダークモード設定を切り替えて動作確認する
-6. ボタンを `Button.jsx` に切り出し、`variant` propで「青（通常）／赤（危険）」を出し分けられるようにする。コマ3のコンポーネント設計の復習
+5. 演習4のダークモードに、ボタンで切り替える機能を足す（Tailwind v4 のドキュメントで `@custom-variant dark` を調べる）
+6. 同じ画面を「CSS Modules で書いた場合」と「Tailwind で書いた場合」で比べ、良い点・悪い点を3つずつまとめる

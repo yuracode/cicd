@@ -1,4 +1,4 @@
-// src/pokedex/pokeApi.js
+// lib/pokeApi.js
 const BASE_URL = 'https://pokeapi.co/api/v2'
 
 // 2つのエンドポイントを呼び、画面で使いやすい1つのオブジェクトに整形して返す
@@ -17,9 +17,7 @@ export async function fetchPokemon(nameOrId) {
 
   const jaName = species.names.find((n) => n.language.name === 'ja')
   const jaGenus = species.genera.find((g) => g.language.name === 'ja')
-  const jaFlavor = species.flavor_text_entries.find(
-    (f) => f.language.name === 'ja',
-  )
+  const jaFlavor = species.flavor_text_entries.find((f) => f.language.name === 'ja')
 
   return {
     id: pokemon.id,

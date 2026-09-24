@@ -82,9 +82,14 @@ Next.js（App Router）で React を **初歩の一歩から学び直し**、作
 
 ### 発展編（a1〜a6・任意）
 
-- TypeScript 化（a1）、Tailwind CSS（a2）、MSW（a3）、Playwright（a4）、CI/CD 強化（a5）、MSW 総合演習（a6）
+本編の先にある実務寄りのテーマです。各ファイル冒頭の「前提コマ」を満たしていれば、興味のあるものから取り組めます。
 
-> **注意**：発展編と `implements/msw-pokedex/` は、まだ **旧版（Vite + Vitest）** のままです。本編の Next.js + Jest 版に合わせた書き直しは今後行います。
+- TypeScript 化：`todo-app` を JS から TS へ段階的に移行する（a1）
+- Tailwind CSS v4 で見た目を整える（a2）
+- MSW で API のモックを本格化する（Jest と開発中のブラウザの両方）（a3）
+- Playwright で E2E テストを書き、CI/CD に組み込む（a4）
+- CI/CD の強化：ビルドキャッシュ・Composite Action・Dependabot（a5）
+- MSW 総合演習：PokeAPI を偽装してポケモン図鑑アプリを作る（a6）
 
 ---
 
@@ -110,7 +115,7 @@ curriculum/
     phase5/    # 26〜30
     advanced/  # a1〜a6（発展編・任意）
 implements/
-  msw-pokedex/  # 発展6の参考実装（旧版：Vite + React）
+  msw-pokedex/  # 発展6の参考実装（Next.js + Jest + MSW）
 ```
 
 ---
