@@ -4,19 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## リポジトリの概要
 
-専門学校ICT学科の授業「技術研究」で使う学習教材リポジトリ。React → テスト → GitHub Actions → CI/CD → デプロイ を本編30コマ＋発展編6コマで学ぶカリキュラムを、**1コマ1ファイルのMarkdown**として管理している。教材本体はMarkdownだが、`implements/` 配下にのみ動くコード（発展編の参考実装）がある。
+専門学校ICT学科の授業「技術研究」で使う学習教材リポジトリ。**Next.js（App Router）で React の初歩から学び直し → テスト → GitHub Actions → CI/CD → デプロイ** を、1コマ90分×本編30コマ＋発展編6コマで学ぶカリキュラムを、**1コマ1ファイルのMarkdown**として管理している。教材本体はMarkdownだが、`implements/` 配下にのみ動くコード（発展編の参考実装）がある。
 
-- `curriculum/docs/phase1/`〜`phase5/`：各フェーズ6コマ、ファイル名は `NN_topic.md`（NNは全体の通し番号。例：phase2は `07_` から始まる）
-- `curriculum/docs/advanced/`：発展編6コマ（`aN_topic.md`、任意教材）
-- `implements/msw-pokedex/`：発展6（a6）の参考実装。Vite + React + Vitest + MSW の動くプロジェクト。**a6のMarkdownに載せたコードと中身を一致させたまま保つこと**（教材側を直したら実装側も直し、`npm run test` が全部PASSすることを確認する）
-- `claude.md`（小文字）：カリキュラム生成時に使った元の仕様書。カリキュラム全体構成表と対象学習者の前提が載っている
+### 構成（2026-09 に Vite 版から Next.js 版へ作り直し済み）
+
+- Phase 1（01〜07）Next.jsでReact基礎：環境構築 / JSXとprops / stateとイベント・`'use client'` / リストと条件表示 / TODO①フォーム / TODO②保存とルーティング・layout / Git・GitHub・PR
+- Phase 2（08〜13）テスト：Jest導入 / 関数の単体テスト / RTL表示 / RTL操作 / モックと非同期（`next/navigation`・fetch）/ カバレッジとServer Componentのテスト方針
+- Phase 3（14〜19）GitHub Actions：概要とYAML / 初ワークフロー / lint+build / test / ルールセット / Secretsと環境変数（`NEXT_PUBLIC_`）
+- Phase 4（20〜25）CI/CD：デプロイ先比較 / Vercel / GitHub Pages（`output: 'export'`＋`basePath`＋`trailingSlash`）/ パイプライン完成 / トラブルシューティング / チーム開発
+- Phase 5（26〜30）個人制作（例：ポモドーロタイマー）：企画・設計と土台 / 実装 / テストとCI/CDの仕上げ / 発表準備 / 最終発表
+- **発展編（`advanced/`）と `implements/msw-pokedex/` は旧Vite版のまま**（前提コマの番号も旧番号）。書き直す場合は本編の規約に合わせる
+
+## ディレクトリ
+
+- `curriculum/docs/phase1/`〜`phase5/`：ファイル名は `NN_topic.md`（NNは全体の通し番号）
+- `curriculum/docs/advanced/`：発展編（`aN_topic.md`、任意教材）
+- `implements/msw-pokedex/`：発展6（a6）の参考実装（旧Vite版）。**a6のMarkdownに載せたコードと中身を一致させたまま保つこと**（教材側を直したら実装側も直し、`npm run test` が全部PASSすることを確認する）
+  - `src/mocks/handlers.js` を開発用（`browser.js`＝Service Worker）とテスト用（`server.js`＝Node）の両方が共有する構成。偽データは `src/mocks/fixtures/` に分離
+- `claude.md`（小文字）：カリキュラム生成時に使った元の仕様書。**`.gitignore` 対象のローカル専用ファイル**で、中身は旧Vite版前提。存在しない環境もある
 - `README.md`：学習者向けの全体案内
 
-**注意**：`claude.md` の生成ルールは一部古い。時間配分（90分・導入15分など）と絵文字付き見出し（🎯 📋 等）はその後の改訂で削除された。仕様が食い違う場合は既存の教材ファイルの形式に合わせること。
-
 ## 教材ファイルの形式
-
-全30ファイルが同じ構成を持つ。編集・追加時はこれを崩さない。
 
 ```markdown
 # コマN｜タイトル
@@ -24,36 +32,61 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | 項目 | 内容 |
 |------|------|
 | フェーズ | Phase X |
-| 所要時間 |  |            ← 空欄のまま（時間配分は廃止済み）
+| 所要時間 | 90分 |            ← 総時間のみ。授業内の時間の割り振り（導入◯分など）は書かない
 | 前提コマ | コマN-1 のタイトル |
 | 次コマ | コマN+1 のタイトル |
 
-##  目標        ← 絵文字なし・## の後にスペース2つ（既存ファイルの実態に合わせる）
+##  目標        ← 絵文字なし・## の後にスペース2つ
 ##  導入
-##  本題
+##  本題        ← 解説＋ハンズオン（先生と一緒に打つ）
+##  演習        ← 授業内で各自解く。基本→応用→早く終わった人向け。解答例は <details> に畳む
 ##  まとめ
-##  課題
+##  課題        ← 授業外の宿題（基礎／応用／チャレンジ）
 ```
 
 - 目標：学習者が「できるようになること」を箇条書き2〜3点
 - 本題：そのまま打てるコマンドをステップ形式で。「なぜそうするか」の理由を必ず添える
+- 演習：本題で打ったコードを少し変えれば解ける難易度から始める。必ず「確認方法（ブラウザで何が見えればOKか／どのテストが通ればOKか）」を書く
 - まとめ：要点整理＋よくある詰まりポイント1〜2点＋次コマ予告
 - 各ファイルは**単体で読めるように**書く（前のコマを開かなくても手順が完結する）
+- 発展編はタイトルが `# 発展N｜タイトル`、フェーズ欄が `発展編（任意）`、次コマ欄が `なし（発展編は興味のある順に取り組んでよい）`
 
 ## 内容の規約
 
 - **文体**：専門学校1〜2年生向け。丁寧すぎず砕けすぎない。専門用語は初出時に一言説明を添える
-- **コードブロック言語**：シェルは `bash`、Reactは `jsx`、GitHub Actionsは `yaml`
-- **`npm run dev` は必ず `npm run dev -- --host` と書く**（学習者はWSL2上で実行し、Windows側ブラウザからアクセスするため）
-- 学習者の環境は Windows + WSL2 Ubuntu、Node.js 24（nvm）、Vite + React 19 前提
-- 教える技術スタック：React 19 / Vitest / React Testing Library / ESLint + Prettier / GitHub Actions / GitHub Pages + Vercel
+- **初歩から**：Phase 1 は「React/Nextを少し触ったことがある人の学び直し」も兼ねる。ターミナル操作やJSの文法（分割代入・アロー関数・map など）も、使う場面で一言おさらいする
+- **コードブロック言語**：シェルは `bash`、React/Next のコードは `jsx`、GitHub Actionsは `yaml`
+- **ファイル拡張子**：`create-next-app --js` の生成物に合わせて `.js`（`page.js`, `layout.js`, `components/Counter.js`, `Counter.test.js`）
+- **開発サーバは `npm run dev`**（オプション不要。`next dev` は全インターフェースで待ち受けるので WSL2 から Windows 側ブラウザで `http://localhost:3000` が開ける）。`-- --host` は Next にないので書かない
+- プロジェクト作成コマンドは次で統一（JS・ESLint・App Router・Tailwindなし・srcなし）：
+  ```bash
+  npx create-next-app@latest <プロジェクト名> --js --eslint --app --no-tailwind --no-src-dir --no-react-compiler --import-alias "@/*" --use-npm --yes
+  ```
+- 自作コンポーネントは `components/` に置き、`@/components/...` で import する
+- 学習者の環境は Windows + WSL2 Ubuntu（プロジェクトは `~/workspace/` 配下。`/mnt/c` には置かない）、Node.js 24（nvm）、Next.js 16 + React 19
+- 教える技術スタック：Next.js 16（App Router, Turbopack）/ React 19 / Jest（`next/jest`）+ React Testing Library / ESLint（`npm run lint` = `eslint`。`next lint` は廃止済み）/ GitHub Actions / Vercel + GitHub Pages（静的書き出し）
+- **Vite・Vitest は使わない**
+- テストの定番構成（Phase 2 以降の前提）：
+  ```bash
+  npm install -D jest jest-environment-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom @testing-library/user-event
+  ```
+  `jest.config.mjs` は `next/jest.js` の `createJestConfig` に `testEnvironment: 'jsdom'`、`setupFilesAfterEnv: ['<rootDir>/jest.setup.js']`、`moduleNameMapper: { '^@/(.*)$': '<rootDir>/$1' }` を渡す（`jest.mock('@/...')` の解決に moduleNameMapper が必須）。`jest.setup.js` は `import '@testing-library/jest-dom'` の1行。scripts は `"test": "jest"`, `"test:watch": "jest --watch"`, `"test:coverage": "jest --coverage"`（コマ13で `collectCoverageFrom` と `coverageThreshold` を追加し、`eslint.config.mjs` の globalIgnores に `coverage/**` を足す）
+- Next特有のテスト上の注意：`async` な Server Component は `render(<Page />)` では描画できない（`render(await Page())` なら単純なものは可。基本はデータ取得を関数に切り出して単体テスト、画面はE2E）。`next/navigation` は `jest.mock` する
+- localStorage を読む部品は `dynamic(() => import(...), { ssr: false })` のラッパー（`TodoAppClient.js`）経由で読み込む。`useEffect` 内で同期的に setState すると `react-hooks/set-state-in-effect` が **error** になるので、読み込みは `useState(loadTodos)` の遅延初期化で行う
+- 本編の TODO アプリの到達形（コマ5〜23）：`components/` に TodoApp / TodoAppClient / TodoForm / TodoList / TodoItem / Header / SampleLoader、`lib/` に todos.js（純粋関数）/ api.js（fetch）/ tips.js、`app/` に page / layout / about / tips（async Server Component）/ not-found、`lib/` に config.js（環境変数）/ nav.js（`isCurrentPath`：Pages の trailingSlash 対策）、`components/Footer.js`。`.github/workflows/ci.yml` は lint・test → build → pages-build → pages-deploy の1本
 
 ## 確認コマンド
 
 ```bash
-# 本編30＋発展編6の計36ファイル揃っているか
+# 教材ファイル数（本編30＋発展編6）
 find curriculum/docs -name "*.md" | wc -l
 
-# 参考実装のテストが通るか（implements/msw-pokedex を触ったとき）
+# 本編30コマが新形式（90分・演習あり）になっているか
+grep -l "所要時間 | 90分" curriculum/docs/phase*/*.md | wc -l
+
+# 教材のコードを検証するときは scratchpad 等に上記 create-next-app で作り、npm run build / npm run lint / npm test を通す
+# ワークフローの YAML は actionlint で検証する
+
+# 参考実装のテスト（implements/msw-pokedex を触ったとき）
 cd implements/msw-pokedex && npm run test
 ```
