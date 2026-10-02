@@ -45,7 +45,7 @@
 
 ### 1. Tailwind CSS v4 を入れる
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -80,7 +80,7 @@ body {
 }
 ```
 
-```bash
+```powershell
 npm run dev
 ```
 
@@ -184,7 +184,7 @@ export default function TodoItem({ todo, onToggle, onDelete }) {
 
 ### 4. テストが落ちる：見た目ではなく意味を確かめる
 
-```bash
+```powershell
 npm test
 ```
 
@@ -218,7 +218,7 @@ expect(screen.getByText('牛乳を買う')).not.toHaveClass('line-through')
 
 > **見た目の細部はテストより「目」で確かめる**：色や余白をテストで全部確かめようとすると、デザインを変えるたびにテストを直すことになる（コマ28）。見た目は Vercel のプレビュー URL で人が確かめ、テストは **ユーザーにとっての意味**（チェックされているか、表示されているか）を中心に書く。
 
-```bash
+```powershell
 npm test
 ```
 
@@ -271,7 +271,7 @@ Tailwind は **スマホ向けのスタイルを先に書き、広い画面の�
 
 ブラウザの開発者ツール（F12）の **デバイスツールバー**（スマホのアイコン）で、スマホの幅でも崩れないことを確かめる。
 
-```bash
+```powershell
 npm run lint
 npm test
 npm run build
@@ -315,7 +315,7 @@ gh pr create --fill
 
 `app/globals.css` や `*.module.css` に、使われなくなったクラスが残っていないか探して消す。
 
-**確認方法**：`grep -rn "className=\"\(header\|nav-link\|container\)" app components` で古いクラス名が見つからず、画面の見た目も崩れていなければOK。
+**確認方法**：`Get-ChildItem -Recurse -File app, components | Select-String 'className="(header|nav-link|container)'` で古いクラス名が見つからず、画面の見た目も崩れていなければOK。
 
 > Tailwind のクラスは、**使われているものだけ** がビルド後の CSS に含まれる。JSX から消せばスタイルも消えるので、「消してよいか分からない CSS」が生まれにくい。
 

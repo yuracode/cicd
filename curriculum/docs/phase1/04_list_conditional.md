@@ -17,7 +17,7 @@
 
 ### 前回の振り返り
 
-```bash
+```powershell
 cd ~/workspace/hello-next
 npm run dev
 ```
@@ -98,8 +98,8 @@ React は、並び替えや削除が起きたときに「どの `<li>` がどの
 
 メニューのデータを `data/menu.js` に分けて置く。
 
-```bash
-mkdir -p data
+```powershell
+mkdir -Force data
 ```
 
 ```jsx
@@ -489,7 +489,7 @@ const sortedItems =
 
 1. 演習1・2を完成させてコミットする
 
-```bash
+```powershell
 git add .
 git commit -m "学食メニューでリストと条件表示を練習"
 ```

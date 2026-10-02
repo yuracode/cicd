@@ -17,7 +17,7 @@
 
 ### 前回の振り返り
 
-```bash
+```powershell
 cd ~/workspace/hello-next
 npm run dev
 ```
@@ -485,7 +485,7 @@ export default function Counter({ initialCount = 0, step = 1, min = -Infinity, m
 
 1. 演習1〜3を完成させてコミットする
 
-```bash
+```powershell
 git add .
 git commit -m "state とイベントの練習"
 ```

@@ -39,11 +39,12 @@
 
 **環境変数** は、プログラムの外（OS やターミナル）から渡される「名前と値」の組。
 
-```bash
+```powershell
 echo $HOME
-# => /home/ユーザー名
+# => C:\Users\ユーザー名
 
-GREETING=こんにちは node -e "console.log(process.env.GREETING)"
+$env:GREETING = "こんにちは"
+node -e "console.log(process.env.GREETING)"
 # => こんにちは
 ```
 
@@ -63,7 +64,7 @@ Next.js は、プロジェクト直下の `.env` 系のファイルを自動で�
 
 ### 3. アプリ名を環境変数にする
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -98,10 +99,15 @@ import { appName } from '@/lib/config'
 }
 ```
 
-`.env.local` を作る。
+VS Code でプロジェクト直下に `.env.local` を新しく作り、次の1行を書いて保存する。
 
-```bash
-echo "NEXT_PUBLIC_APP_NAME=TODOアプリ（開発版）" > .env.local
+```text
+NEXT_PUBLIC_APP_NAME=TODOアプリ（開発版）
+```
+
+> PowerShell 5.1 の `echo ... > ファイル` は文字コードが UTF-16 になり、Next.js や Git が正しく読めない。設定ファイルは **VS Code で開いて書く** のが確実。
+
+```powershell
 npm run dev
 ```
 
@@ -113,8 +119,8 @@ npm run dev
 
 試しに、`.env.local` に接頭辞のない変数を追加する。
 
-```bash
-echo "SECRET_WORD=himitsu123" >> .env.local
+```text
+SECRET_WORD=himitsu123
 ```
 
 `components/Header.js`（Client Component）で表示してみる。
@@ -138,9 +144,9 @@ Next.js は、**`NEXT_PUBLIC_` で始まる変数だけ** をブラウザ用の 
 
 ビルドして、`NEXT_PUBLIC_APP_NAME` の値がどこに入るか確かめる。
 
-```bash
+```powershell
 npm run build
-grep -rl "開発版" .next/static
+Get-ChildItem -Recurse -File .next/static | Select-String -List "開発版" | % Path
 ```
 
 ```text
@@ -157,7 +163,7 @@ grep -rl "開発版" .next/static
 
 `.env.local` は Git に入らないので、他の人（や、別の PC の自分）は「どんな変数が必要か」分からない。見本として `.env.example` を作る。
 
-```bash
+```text
 # .env.example
 # コピーして .env.local を作り、値を入れる
 NEXT_PUBLIC_APP_NAME=TODOアプリ
@@ -173,14 +179,14 @@ NEXT_PUBLIC_APP_NAME=TODOアプリ
 
 `!` は「上のルールの例外」という意味。
 
-```bash
+```powershell
 git status
 # .env.example は表示され、.env.local は表示されないことを確認
 ```
 
 テストも確認する。
 
-```bash
+```powershell
 npm test
 ```
 
@@ -188,7 +194,7 @@ npm test
 
 > Jest（`next/jest`）も `.env` 系のファイルを読み込むが、**テストでは `.env.local` は読まれない**（人によって結果が変わらないようにするため）。テストで使いたい値は `.env.test` に書く。
 
-```bash
+```powershell
 git add .
 git commit -m "feat: アプリ名を環境変数 NEXT_PUBLIC_APP_NAME で設定できるようにする"
 git push -u origin feature/env-app-name
@@ -208,7 +214,7 @@ Secrets に登録した値は、**登録した本人も含めて、あとから�
 
 ターミナルから登録する。
 
-```bash
+```powershell
 gh variable set APP_NAME --body "TODOアプリ（CI）"
 gh secret set DEMO_SECRET --body "this-is-a-secret"
 gh variable list
@@ -240,7 +246,7 @@ Secrets がログで隠されることも確かめる。`build` ジョブの最�
           DEMO_SECRET: ${{ secrets.DEMO_SECRET }}
 ```
 
-```bash
+```powershell
 git add .
 git commit -m "ci: ビルドで APP_NAME を使い、Secrets の動きを確認する"
 git push
@@ -260,7 +266,7 @@ gh pr checks --watch
 
 確認できたら「Secrets の練習」のステップを消して push し、CI が緑になったらマージする。
 
-```bash
+```powershell
 git add .
 git commit -m "ci: Secrets の練習ステップを削除"
 git push

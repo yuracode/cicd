@@ -17,7 +17,7 @@
 
 ### 前回の振り返り
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -74,7 +74,7 @@ export default function TodoForm({ onAdd }) {
 }
 ```
 
-```bash
+```powershell
 git switch -c test/user-interaction
 ```
 
@@ -157,7 +157,7 @@ test('空白だけなら onAdd は呼ばれない', async () => {
 - `{Enter}` のように `{ }` で囲むと、特殊なキーを押せる（`{Tab}`、`{Backspace}`、`{Escape}` など）
 - `toHaveValue('')`：入力欄の中身が空であること
 
-```bash
+```powershell
 npm test
 ```
 
@@ -181,7 +181,7 @@ test('チェックボックスを押すと onToggle が TODO の id で呼ばれ
 
 `TodoItem` はチェック状態を自分では変えない（state を持っていない）。だからこのテストでは **チェックが付いたか** ではなく、**親に正しい id を知らせたか** を確かめている。
 
-```bash
+```powershell
 git add .
 git commit -m "test: TodoForm と TodoItem の操作テストを追加"
 ```
@@ -243,7 +243,7 @@ test('localStorage に保存された TODO が最初から表示される', () =
 
 **準備（Arrange）で localStorage にデータを入れておく** ことで、「前回の続きから始まる」状況を再現している。
 
-```bash
+```powershell
 npm test
 git add .
 git commit -m "test: TodoApp の結合テストを追加"

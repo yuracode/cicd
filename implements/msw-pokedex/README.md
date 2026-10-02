@@ -7,7 +7,7 @@ Next.js（App Router）+ Jest + React Testing Library + MSW で作っていま�
 
 ## 動かし方
 
-```bash
+```powershell
 npm install
 npm run dev
 ```
@@ -16,12 +16,12 @@ http://localhost:3000 を開き、`pikachu` や `charizard` で検索してく�
 本物のPokeAPIと同じく、図鑑番号（`25` など）でも検索できます。
 フィクスチャに登録されていない名前（例：`mewtwo`）は404となり、「見つかりませんでした」と表示されます。
 
-`npm run dev` は `NEXT_PUBLIC_API_MOCKING=enabled` を付けて起動するので、ブラウザの MSW（Service Worker）が PokeAPI への通信を横取りします。
+`npm run dev` は `cross-env` で `NEXT_PUBLIC_API_MOCKING=enabled` を付けて起動するので（Windows の PowerShell でも Linux でも同じように動きます）、ブラウザの MSW（Service Worker）が PokeAPI への通信を横取りします。
 開発者ツールの Console に `[MSW] ... GET https://pokeapi.co/...` と表示されれば、モックが効いています（公式アートワークの画像だけは、ハンドラを定義していないのでパススルーで本物から取得されます）。
 
 ## テスト
 
-```bash
+```powershell
 npm test
 ```
 
@@ -54,7 +54,7 @@ jest.setup.js         # テスト全体の MSW 起動・停止
 
 ## 本物のPokeAPIで動かす場合
 
-```bash
+```powershell
 npm run dev:real
 ```
 

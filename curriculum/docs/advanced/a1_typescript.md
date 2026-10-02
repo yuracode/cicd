@@ -39,7 +39,7 @@
 
 ### 1. ブランチを切ってパッケージを入れる
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -61,7 +61,7 @@ npm install -D typescript @types/react @types/react-dom @types/node @types/jest
 
 `jsconfig.json` の代わりに `tsconfig.json` を使う。`jsconfig.json` を消して、`tsconfig.json` を作る。
 
-```bash
+```powershell
 git rm jsconfig.json
 ```
 
@@ -102,7 +102,7 @@ git rm jsconfig.json
 
 型チェックのコマンドを追加する。
 
-```bash
+```powershell
 npm pkg set scripts.typecheck="tsc --noEmit"
 npm run typecheck
 ```
@@ -115,7 +115,7 @@ npm run typecheck
 
 移行は **他から使われる側（土台）から** 始めると楽。`lib/todos.js` を `lib/todos.ts` にする。
 
-```bash
+```powershell
 git mv lib/todos.js lib/todos.ts
 npm run typecheck
 ```
@@ -190,7 +190,7 @@ error TS2551: Property 'don' does not exist on type 'Todo'. Did you mean 'done'?
 
 **実行する前に**、しかも「`done` のことでは？」と教えてくれる。確かめたら戻す。
 
-```bash
+```powershell
 npm run typecheck
 npm test
 git add .
@@ -203,7 +203,7 @@ git commit -m "refactor: lib/todos をTypeScriptに移行"
 
 `components/` の中のファイルを `.tsx`（JSX を含む TS）にする。
 
-```bash
+```powershell
 git mv components/TodoItem.js components/TodoItem.tsx
 git mv components/TodoList.js components/TodoList.tsx
 git mv components/TodoForm.js components/TodoForm.tsx
@@ -271,7 +271,7 @@ export default function TodoForm({ onAdd }: TodoFormProps) {
 
 `TodoApp.js` と `SampleLoader.js`、`lib/` の残りのファイルも移行する。
 
-```bash
+```powershell
 git mv components/TodoApp.js components/TodoApp.tsx
 git mv components/SampleLoader.js components/SampleLoader.tsx
 git mv lib/api.js lib/api.ts
@@ -361,7 +361,7 @@ import type { ReactNode } from 'react'
 export default function RootLayout({ children }: { children: ReactNode }) {
 ```
 
-```bash
+```powershell
 npm run typecheck
 npm run dev
 ```
@@ -372,7 +372,7 @@ npm run dev
 
 テストファイルも `.test.tsx` / `.test.ts` にし、`jest.setup.js` を `jest.setup.ts` にする（`jest.config.mjs` の `setupFilesAfterEnv` も `'<rootDir>/jest.setup.ts'` に直す）。
 
-```bash
+```powershell
 npm run typecheck
 ```
 
@@ -412,7 +412,7 @@ test.each<[TodoFilter, string[]]>([
 ])('%s のとき id が %j の TODO が残る', (filter, expectedIds) => {
 ```
 
-```bash
+```powershell
 npm run typecheck
 npm test
 npm run lint
@@ -433,7 +433,7 @@ npm run build
         run: npm run typecheck
 ```
 
-```bash
+```powershell
 git add .
 git commit -m "refactor: todo-app をTypeScriptに移行し、CIに型チェックを追加"
 git push -u origin feature/typescript

@@ -52,7 +52,7 @@ GitHub の **ルールセット** で、`main` に次のルールを付ける。
 
 ### 2. ルールセットを作る
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 gh repo view --web
 ```
@@ -86,10 +86,10 @@ gh repo view --web
 
 ### 3. main に直接 push してみる
 
-```bash
+```powershell
 git switch main
 git pull
-echo "" >> README.md
+code README.md   # 末尾に1行足して保存する
 git commit -am "docs: mainに直接pushしてみる"
 git push
 ```
@@ -105,7 +105,7 @@ remote: - 3 of 3 required status checks are expected.
 
 手元の `main` に作ってしまったコミットは、取り消しておく。
 
-```bash
+```powershell
 git reset --hard origin/main
 ```
 
@@ -113,13 +113,13 @@ git reset --hard origin/main
 
 ### 4. CI が赤い PR はマージできない
 
-```bash
+```powershell
 git switch -c test/protected
 ```
 
 わざとテストを失敗させる。`lib/todos.test.js` の適当なテストの期待値を変える（例：`toBe(1)` → `toBe(999)`）。
 
-```bash
+```powershell
 git commit -am "test: わざとテストを失敗させる"
 git push -u origin test/protected
 gh pr create --fill
@@ -132,14 +132,14 @@ PR の画面の下のほう：
 - `test` が赤になっても、マージボタンは押せないまま
 - ターミナルから `gh pr merge` しようとしても拒否される
 
-```bash
+```powershell
 gh pr merge --merge
 # => X Pull request ... is not mergeable: the base branch policy prohibits the merge.
 ```
 
 テストを直して push する。
 
-```bash
+```powershell
 git commit -am "fix: テストを元に戻す"
 git push
 gh pr checks --watch
@@ -147,7 +147,7 @@ gh pr checks --watch
 
 3つとも緑になると、マージボタンが押せるようになる。
 
-```bash
+```powershell
 gh pr merge --merge --delete-branch
 git switch main
 git pull
@@ -168,7 +168,7 @@ A と B はそれぞれ単独ではテストが通っていても、**組み合�
 
 PR の画面に **Update branch** ボタンが出たら、押すと `main` の変更が PR ブランチに取り込まれ、CI がもう一度動く。ターミナルでは次のようにする。
 
-```bash
+```powershell
 git switch <PRのブランチ>
 git pull origin main
 git push
@@ -176,8 +176,8 @@ git push
 
 ### 6. ルールセットの状態を確認する
 
-```bash
-gh api repos/{owner}/{repo}/rulesets
+```powershell
+gh api "repos/{owner}/{repo}/rulesets"
 ```
 
 `{owner}` と `{repo}` は、今いるリポジトリの持ち主と名前に `gh` が自動で置き換えてくれる。`protect-main` が表示されればOK。

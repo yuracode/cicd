@@ -55,11 +55,11 @@ app/page.js（Server Component：見出しを出すだけ）
 
 ### 1. プロジェクトを作る
 
-```bash
+```powershell
 cd ~/workspace
 npx create-next-app@latest todo-app --js --eslint --app --no-tailwind --no-src-dir --no-react-compiler --import-alias "@/*" --use-npm --yes
 cd todo-app
-mkdir -p components
+mkdir -Force components
 rm app/page.module.css
 npm run dev
 ```
@@ -324,7 +324,7 @@ export default function TodoApp() {
 4. 「レポート提出」を削除 → 消える
 5. 全部消す → 「やることはありません」
 
-```bash
+```powershell
 git add .
 git commit -m "TODOの追加・完了・削除を実装"
 ```
@@ -509,7 +509,7 @@ function clearDone() {
 
 1. 演習1〜3を完成させてコミットする
 
-```bash
+```powershell
 git add .
 git commit -m "件数表示・入力チェック・絞り込みを追加"
 ```

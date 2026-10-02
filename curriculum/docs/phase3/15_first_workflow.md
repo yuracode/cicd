@@ -33,12 +33,12 @@
 
 ### 1. ワークフローファイルを作る
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
 git switch -c ci/hello
-mkdir -p .github/workflows
+mkdir -Force .github/workflows
 ```
 
 ```yaml
@@ -62,7 +62,7 @@ jobs:
 - `push:` の下に何も書かないと、**どのブランチへの push でも** 動く（今回は作業ブランチで試したいのでこうする）
 - フォルダ名 `.github/workflows/` は **決まった名前**。1文字でも違うと動かない
 
-```bash
+```powershell
 git add .github/workflows/hello.yml
 git commit -m "ci: はじめてのワークフローを追加"
 git push -u origin ci/hello
@@ -70,7 +70,7 @@ git push -u origin ci/hello
 
 ### 2. Actions タブで結果を見る
 
-```bash
+```powershell
 gh repo view --web
 ```
 
@@ -85,9 +85,9 @@ gh repo view --web
 
 ターミナルからも確認できる。
 
-```bash
+```powershell
 gh run list --limit 3
-gh run view --log | tail -20
+gh run view --log | Select-Object -Last 20
 ```
 
 ### 3. ランナーの中を覗く
@@ -105,7 +105,7 @@ gh run view --log | tail -20
           ls -la
 ```
 
-```bash
+```powershell
 git add .
 git commit -m "ci: ランナーの情報を表示"
 git push
@@ -150,7 +150,7 @@ jobs:
           ls -la
 ```
 
-```bash
+```powershell
 git add .
 git commit -m "ci: checkout を追加"
 git push
@@ -189,7 +189,7 @@ git push
 
 ターミナルからも実行できる。
 
-```bash
+```powershell
 gh workflow run hello.yml --ref ci/hello
 gh run list --limit 3
 ```
@@ -212,7 +212,7 @@ gh run list --limit 3
         run: echo "greet が終わったので goodbye です"
 ```
 
-```bash
+```powershell
 git add .
 git commit -m "ci: needs で順番のあるジョブを追加"
 git push
@@ -230,7 +230,7 @@ Actions の画面で、`greet` → `goodbye` と矢印でつながった図が�
           exit 1
 ```
 
-```bash
+```powershell
 git add .
 git commit -m "ci: わざと失敗させる"
 git push
@@ -245,7 +245,7 @@ git push
 
 確認したら、「わざと失敗する」のステップを消して push し、緑に戻す。
 
-```bash
+```powershell
 git add .
 git commit -m "ci: わざと失敗させるステップを削除"
 git push

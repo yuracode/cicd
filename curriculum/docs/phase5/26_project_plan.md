@@ -145,19 +145,19 @@
 
 ### 5. 土台を作る：プロジェクトとテスト
 
-```bash
+```powershell
 cd ~/workspace
 npx create-next-app@latest pomodoro --js --eslint --app --no-tailwind --no-src-dir --no-react-compiler --import-alias "@/*" --use-npm --yes
 cd pomodoro
-mkdir -p components lib
+mkdir -Force components, lib
 rm app/page.module.css
 ```
 
 `todo-app` で作った設定をコピーして使い回す。
 
-```bash
+```powershell
 npm install -D jest jest-environment-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom @testing-library/user-event prettier
-cp ../todo-app/jest.config.mjs ../todo-app/jest.setup.js ../todo-app/.prettierrc ../todo-app/.prettierignore .
+Copy-Item ../todo-app/jest.config.mjs, ../todo-app/jest.setup.js, ../todo-app/.prettierrc, ../todo-app/.prettierignore .
 npm pkg set scripts.test="jest" scripts.test:watch="jest --watch" scripts.test:coverage="jest --coverage" scripts.lint="eslint --max-warnings=0" scripts.format="prettier --write ." scripts.format:check="prettier --check ."
 ```
 
@@ -190,7 +190,7 @@ test.each([
 
 > **`padStart(2, '0')`**：文字列が2文字になるまで、左に `'0'` を詰める。`'5'` → `'05'`。
 
-```bash
+```powershell
 npm run format
 npm run lint
 npm test
@@ -203,8 +203,8 @@ npm run build
 
 `todo-app` のワークフローと Pages の設定をコピーする。
 
-```bash
-mkdir -p .github/workflows
+```powershell
+mkdir -Force .github/workflows
 cp ../todo-app/.github/workflows/ci.yml .github/workflows/
 cp ../todo-app/next.config.mjs .
 ```
@@ -217,7 +217,7 @@ cp ../todo-app/next.config.mjs .
 
 GitHub にリポジトリを作って push する。
 
-```bash
+```powershell
 git add .
 git commit -m "chore: プロジェクトの土台（テスト・CI/CD）を用意"
 gh repo create pomodoro --public --source=. --remote=origin --push
@@ -235,7 +235,7 @@ GitHub で次を設定する（それぞれ、以前のコマの手順と同じ�
 
 ### 7. 空のアプリが公開されたことを確かめる
 
-```bash
+```powershell
 gh run list --limit 3
 ```
 
@@ -246,7 +246,7 @@ gh run list --limit 3
 
 README の先頭に公開 URL を書き、企画書（本題2）と合わせて PR でマージする。
 
-```bash
+```powershell
 git switch -c docs/plan
 # README.md に企画書と公開URLを書く
 git add README.md
@@ -273,7 +273,7 @@ gh pr merge --merge --delete-branch
 
 MVP の機能を、**1つが 30〜60 分で終わる大きさ** の Issue に分けて登録する。
 
-```bash
+```powershell
 gh issue create --title "25分のカウントダウンを表示する" --body "スタートを押すと1秒ずつ減る。一時停止・リセットができる。"
 ```
 

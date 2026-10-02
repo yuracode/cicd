@@ -53,7 +53,7 @@ PR / main に push → │ lint │   │ test │
 
 ### 1. ci.yml にデプロイを取り込む
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -164,7 +164,7 @@ jobs:
 
 そして、役目を終えた `deploy-pages.yml` を消す。
 
-```bash
+```powershell
 git rm .github/workflows/deploy-pages.yml
 ```
 
@@ -184,7 +184,7 @@ git rm .github/workflows/deploy-pages.yml
 
 ### 3. PR で「CI だけ」動くことを確かめる
 
-```bash
+```powershell
 git add .
 git commit -m "ci: CIとGitHub Pagesのデプロイを1本のパイプラインにまとめる"
 git push -u origin ci/pipeline
@@ -194,7 +194,7 @@ gh pr view --web
 
 Actions の画面で実行を開くと、`lint` / `test` → `build` まで動き、`pages-build` と `pages-deploy` は **スキップ**（灰色）になっている。
 
-```bash
+```powershell
 gh pr checks --watch
 gh pr merge --merge --delete-branch
 git switch main
@@ -226,13 +226,13 @@ Vercel は GitHub Actions とは別に、自分で push を見てデプロイし
 
 **① Issue を作る**
 
-```bash
+```powershell
 gh issue create --title "フッターを追加する" --body "全ページの下に「© 2026 名前」を表示する。"
 ```
 
 **② ブランチを切って、テストを先に書く**
 
-```bash
+```powershell
 git switch -c feature/footer
 ```
 
@@ -250,7 +250,7 @@ test('著作権表示が出る', () => {
 
 > `<footer>` の role は `contentinfo`（ページの付属情報）。
 
-```bash
+```powershell
 npm test   # Footer がないので失敗する
 ```
 
@@ -290,7 +290,7 @@ import Footer from '@/components/Footer'
 
 **④ 手元で CI と同じチェックをする**
 
-```bash
+```powershell
 npm run lint
 npm test
 npm run build
@@ -298,7 +298,7 @@ npm run build
 
 **⑤ PR を作る**
 
-```bash
+```powershell
 git add .
 git commit -m "feat: フッターを追加"
 git push -u origin feature/footer
@@ -312,7 +312,7 @@ gh pr create --title "フッターを追加" --body "Closes #<Issue番号>"
 
 **⑦ マージする**
 
-```bash
+```powershell
 gh pr merge --merge --delete-branch
 git switch main
 git pull
@@ -331,7 +331,7 @@ gh run watch
 
 Pages には Vercel の Instant Rollback のようなボタンがない。**「変更を打ち消すコミット」を作って、もう一度パイプラインに流す** のが基本。
 
-```bash
+```powershell
 git switch -c revert/footer
 git revert <フッターを追加したマージコミットのID> -m 1
 git push -u origin revert/footer

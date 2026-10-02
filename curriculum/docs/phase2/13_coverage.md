@@ -17,7 +17,7 @@
 
 ### 前回の振り返り
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -40,7 +40,7 @@ Phase 2 で、関数・部品・操作・通信までテストを書いてきた
 
 **カバレッジ** は「テストを実行したときに、コードの各行・各分岐が **1回以上実行されたか**」の割合。
 
-```bash
+```powershell
 git switch -c test/coverage
 npm pkg set scripts.test:coverage="jest --coverage"
 ```
@@ -75,7 +75,7 @@ export default createJestConfig(config)
 
 > `collectCoverageFrom` を書かないと、**テストから一度も読み込まれなかったファイルは表に出てこない**。「テストが1本もないファイル」こそ見つけたいので、対象を明示しておく。
 
-```bash
+```powershell
 npm run test:coverage
 ```
 
@@ -108,10 +108,10 @@ All files          |   82.58 |    93.84 |   81.81 |   82.58 |
 
 ### 2. HTML レポートで行ごとに見る
 
-カバレッジを測ると、`coverage/lcov-report/index.html` にレポートが作られる。WSL から Windows のブラウザで開く。
+カバレッジを測ると、`coverage/lcov-report/index.html` にレポートが作られる。ブラウザで開く。
 
-```bash
-explorer.exe coverage/lcov-report/index.html
+```powershell
+start coverage/lcov-report/index.html
 ```
 
 ファイル名をクリックすると、コードが色分けされて表示される。
@@ -128,7 +128,7 @@ explorer.exe coverage/lcov-report/index.html
 
 この状態で `npm run lint` を実行すると、`coverage/` の中の JavaScript まで検査して警告が出る。
 
-```bash
+```powershell
 npm run lint
 # coverage/lcov-report/prettify.js
 #   1:1  warning  Unused eslint-disable directive ...
@@ -148,7 +148,7 @@ npm run lint
   ]),
 ```
 
-```bash
+```powershell
 npm run lint
 # 何も表示されなければOK
 ```
@@ -168,13 +168,13 @@ npm run lint
 
 テストが抜けていた関数（上の例なら `lib/todos.js` の 28〜35 行目）のテストを書いて、もう一度測る。
 
-```bash
+```powershell
 npm run test:coverage
 ```
 
 `todos.js` が 100% になればOK。
 
-```bash
+```powershell
 git add .
 git commit -m "test: カバレッジ測定を追加し、抜けていたテストを補う"
 ```
@@ -198,9 +198,9 @@ git commit -m "test: カバレッジ測定を追加し、抜けていたテス�
       lines: 95,
 ```
 
-```bash
+```powershell
 npm run test:coverage
-echo $?
+$LASTEXITCODE
 ```
 
 ```text
@@ -209,7 +209,7 @@ Jest: Coverage for lines (82.58%) does not meet "global" threshold (95%)
 ```
 
 - テストがすべて PASS していても、基準を下回ると **失敗扱い** になる
-- `echo $?` は直前のコマンドの **終了コード**（0 なら成功、それ以外なら失敗）を表示する。Phase 3 で使う GitHub Actions は、この終了コードを見て「OK」か「NG」かを判断する
+- `$LASTEXITCODE` は直前のコマンドの **終了コード**（0 なら成功、それ以外なら失敗）を表示する。Phase 3 で使う GitHub Actions は、この終了コードを見て「OK」か「NG」かを判断する
 
 確認したら `80` に戻す。
 
@@ -318,7 +318,7 @@ test('コツが3件表示される', async () => {
 
 `TipsPage()` を **普通の関数として呼び、`await` で JSX を受け取ってから** `render` に渡している。ページの中にさらに async な部品がある場合はこの方法は使えないので、そのときは ③ E2E を使う（発展編で扱う）。
 
-```bash
+```powershell
 npm run test:coverage
 git add .
 git commit -m "feat: TODOのコツページを追加（テスト付き）"

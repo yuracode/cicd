@@ -10,7 +10,7 @@
 ##  目標
 
 - 「技術研究」全30コマのゴールと、毎回の進め方を説明できる
-- WSL2 Ubuntu 上に Node.js 24 と Git をセットアップできる
+- Windows の PowerShell で Node.js 24 と Git をセットアップできる
 - `create-next-app` で Next.js プロジェクトを作り、`npm run dev` でブラウザに表示できる
 
 ##  導入
@@ -44,49 +44,38 @@ React だけだと「ページをどう分けるか」「どうやって公開�
 
 ##  本題
 
-### 1. ターミナルの基本をおさらい
+### 1. ターミナル（PowerShell）の基本をおさらい
 
-WSL2 の Ubuntu を開く（スタートメニューで「Ubuntu」）。まずは「今どこにいるか」を確認するクセをつける。
+この授業では Windows の **PowerShell** でコマンドを打つ。スタートメニューで「ターミナル」（Windows Terminal）を開くと PowerShell が立ち上がる。まずは「今どこにいるか」を確認するクセをつける。
 
-```bash
-# WSL2 内で実行
-uname -a
-# => Linux ... microsoft-standard-WSL2 ... と出ればOK
+```powershell
+$PSVersionTable.PSVersion   # PowerShell のバージョン（5.1 でも 7.x でもよい）
 
 pwd          # 今いる場所（ディレクトリ）を表示
 ls           # 今いる場所のファイル一覧
-cd ~         # ホームディレクトリへ移動
-mkdir -p ~/workspace   # 作業用フォルダを作る（-p は「すでにあってもエラーにしない」）
+cd ~         # ホームディレクトリ（C:\Users\ユーザー名）へ移動
+mkdir -Force ~/workspace   # 作業用フォルダを作る（-Force は「すでにあってもエラーにしない」）
 cd ~/workspace
 pwd
-# => /home/ユーザー名/workspace
+# => C:\Users\ユーザー名\workspace
 ```
 
-> **WSL2 とは**：Windows の中で Linux（Ubuntu）を動かす仕組み。サーバの多くは Linux で動いているので、開発も Linux でやっておくと本番との差が小さくなる。
+> **PowerShell とは**：Windows 標準のコマンド実行環境。`pwd`・`ls`・`cd`・`mkdir` など Linux と同じ名前のコマンドがそのまま使える（中身は PowerShell 版のコマンドの別名）。パスの区切りは `\` だが、`/` で書いても通じる。
 >
-> **なぜ `/mnt/c`（Windows の C ドライブ）に作らないのか**：WSL2 から Windows 側のファイルを触ると非常に遅く、ファイルの変更検知もうまく動かないことがある。プロジェクトは必ず `~/workspace` のような Linux 側に置く。
+> **なぜ `~/workspace` に作るのか**：OneDrive と同期されるフォルダ（「ドキュメント」や「デスクトップ」）に作ると、`node_modules` の大量のファイルまで同期されて遅くなったりロックされたりする。プロジェクトは同期対象外の `C:\Users\ユーザー名\workspace` に置く。日本語や空白を含むパスも避ける。
 
-### 2. Node.js 24 をインストールする
+### 2. Node.js 24 と Git をインストールする
 
-Node.js は「ブラウザの外で JavaScript を動かす環境」。Next.js の開発サーバもビルドも Node.js の上で動く。バージョンを切り替えられるように **nvm**（Node Version Manager）経由で入れる。
+Node.js は「ブラウザの外で JavaScript を動かす環境」。Next.js の開発サーバもビルドも Node.js の上で動く。Windows 標準のパッケージ管理ツール **winget** で LTS 版（長期サポート版。2026年秋時点で 24 系）を入れる。Git もここで入れておく。
 
-```bash
-# nvm をインストール
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | bash
-
-# 設定を読み込み直す
-source ~/.bashrc
-
-# nvm が使えるか確認
-command -v nvm
-# => nvm と表示されればOK
+```powershell
+winget install --id OpenJS.NodeJS.LTS -e
+winget install --id Git.Git -e
 ```
 
-```bash
-# Node.js 24 をインストールして、標準にする
-nvm install 24
-nvm alias default 24
+インストールが終わったら **ターミナルをいったん閉じて開き直す**（新しく入ったコマンドの場所＝PATH を読み込み直すため）。
 
+```powershell
 # 確認
 node -v
 # => v24.x.x
@@ -94,42 +83,65 @@ npm -v
 # => 11.x.x など
 ```
 
+`npm -v` で「このシステムではスクリプトの実行が無効になっているため…」と赤いエラーが出たら、PowerShell のスクリプト実行を自分のユーザーだけ許可する（1回やればよい）。
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+npm -v
+```
+
+> **winget とは**：Windows のアプリをコマンドで入れる仕組み。`OpenJS.NodeJS.LTS` は Node.js の LTS 版の ID。
+>
 > **npm とは**：Node.js に付いてくる「部品（パッケージ）の取り寄せ係」。Next.js も React も npm でダウンロードする。
+>
+> **実行ポリシーとは**：PowerShell が「スクリプトファイル（`.ps1`）を実行してよいか」を決める設定。`npm` や `npx` は `npm.ps1` というスクリプトとして動くので、初期設定のままだと止められてしまう。
 
 ### 3. Git の初期設定
 
-```bash
+```powershell
 git --version
-# => git version 2.x.x
+# => git version 2.x.x.windows.x
 
 # 名前とメールを登録（GitHub に登録したメールにする）
 git config --global user.name "あなたの名前"
 git config --global user.email "github登録メール@example.com"
 
+# 改行コードを勝手に変換しない（理由は下）
+git config --global core.autocrlf false
+
 # 確認
 git config --global --list
 ```
 
+> **改行コードとは**：行の終わりを表す見えない文字。Windows は `CRLF`、Linux や Mac は `LF` を使う。CI（GitHub Actions）は Linux で動くので、この授業ではファイルを **LF にそろえる**。Git が勝手に CRLF に変換しないよう `core.autocrlf false` にしておく。
+
 > GitHub アカウントがまだなければ [github.com](https://github.com) で作っておく。コマ7から使う。
 
-### 4. VS Code を WSL2 につなぐ
+### 4. VS Code を準備する
 
-Windows 側の VS Code に次の拡張機能を入れる。
+VS Code がまだなければ winget で入れる。
 
-- **WSL**（Microsoft 製）：VS Code から WSL2 の中のファイルを直接開ける
+```powershell
+winget install --id Microsoft.VisualStudioCode -e
+```
+
+VS Code に次の拡張機能を入れる。
+
 - **ESLint**：コードの書き方の問題をその場で教えてくれる
 - **Prettier - Code formatter**：保存時にコードの見た目を整える
 
-```bash
+さらに、VS Code で新しく作るファイルも LF になるように設定する。`Ctrl + ,` で設定を開き、「eol」で検索して **Files: Eol** を `\n` にする。
+
+```powershell
 cd ~/workspace
 code .
 ```
 
-初回だけ VS Code Server が自動でインストールされる。左下に「WSL: Ubuntu」と出ていれば接続成功。
+VS Code の下のバーに `LF` と出ていればOK（`CRLF` ならクリックして `LF` に変える）。VS Code の中のターミナル（`` Ctrl + ` ``）も PowerShell なので、以降のコマンドはそこで打ってもよい。
 
 ### 5. create-next-app でプロジェクトを作る
 
-```bash
+```powershell
 cd ~/workspace
 npx create-next-app@latest hello-next --js --eslint --app --no-tailwind --no-src-dir --no-react-compiler --import-alias "@/*" --use-npm --yes
 ```
@@ -152,7 +164,7 @@ npx create-next-app@latest hello-next --js --eslint --app --no-tailwind --no-src
 
 ### 6. 開発サーバを起動する
 
-```bash
+```powershell
 cd hello-next
 npm run dev
 ```
@@ -160,11 +172,11 @@ npm run dev
 ```text
 ▲ Next.js 16.x.x (Turbopack)
 - Local:         http://localhost:3000
-- Network:       http://172.xx.xx.xx:3000
+- Network:       http://192.168.xx.xx:3000
 ✓ Ready in 300ms
 ```
 
-Windows 側のブラウザで **http://localhost:3000** を開く。Next.js のロゴが出たら成功。
+ブラウザで **http://localhost:3000** を開く。Next.js のロゴが出たら成功。
 
 > **開発サーバとは**：自分の PC の中だけで動く「お試し用の Web サーバ」。ファイルを保存すると自動で画面が更新される（**ホットリロード**）。
 >
@@ -225,7 +237,7 @@ export default function Home() {
 
 `create-next-app` は自動で `git init` と最初のコミットまで済ませてくれている。
 
-```bash
+```powershell
 git log --oneline
 # => xxxxxxx Initial commit from Create Next App
 
@@ -348,15 +360,15 @@ Next.js では **フォルダ名がそのまま URL になる**（ファイル�
 
 ### 今日できるようになったこと
 
-- WSL2 + Node.js 24 + Git の開発環境を整えた
+- PowerShell + Node.js 24 + Git の開発環境を整えた
 - `create-next-app` で Next.js プロジェクトを作り、`npm run dev` で起動できた
 - `app/page.js` の default export がトップページになることを確認した
 
 ### よくある詰まりポイント
 
-- **`nvm: command not found`**：`source ~/.bashrc` を実行するか、ターミナルを開き直す
+- **`node` や `npm` が「認識されません」と出る**：インストール後にターミナルを開き直していない。全部閉じて開き直す。`npm` だけ赤いエラーなら本題2の `Set-ExecutionPolicy` を実行する
 - **ブラウザで開けない**：ターミナルで `npm run dev` が動いたままになっているか確認する。`Ctrl + C` で止めていたら表示されない。ポート3000が使用中だと `3001` で起動するので、ターミナルに表示された URL を開く
-- **保存しても画面が変わらない**：プロジェクトを `/mnt/c/...` に作っていないか確認する（`pwd` で確認）
+- **保存しても画面が変わらない／`npm install` が異常に遅い**：プロジェクトを OneDrive で同期されるフォルダ（デスクトップ・ドキュメント）に作っていないか `pwd` で確認する。ウイルス対策ソフトのリアルタイムスキャンが原因のこともある
 
 ### 次コマ予告
 
@@ -368,12 +380,12 @@ Next.js では **フォルダ名がそのまま URL になる**（ファイル�
 
 1. 演習1〜3で作った自己紹介ページを完成させ、コミットする
 
-```bash
+```powershell
 git add .
 git commit -m "自己紹介ページを作成"
 ```
 
-2. 次のコマンドの意味を、それぞれ1行で説明するメモを作る：`pwd` / `cd` / `mkdir -p` / `npx` / `npm run dev` / `git commit`
+2. 次のコマンドの意味を、それぞれ1行で説明するメモを作る：`pwd` / `cd` / `mkdir -Force` / `npx` / `npm run dev` / `git commit`
 
 ### 応用課題（推奨）
 

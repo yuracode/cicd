@@ -123,7 +123,7 @@
 - 自分のアプリのリポジトリの About（右上の歯車）に、説明文・公開 URL・Topics（`nextjs`、`jest`、`github-actions` など）を設定する
 - `todo-app` と個人制作のリポジトリを **Pin**（プロフィールの一番上に固定）する
 
-```bash
+```powershell
 gh repo edit --description "25分作業・5分休憩のポモドーロタイマー（Next.js / Jest / GitHub Actions）" --add-topic nextjs --add-topic jest --add-topic github-actions
 ```
 

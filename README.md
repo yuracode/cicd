@@ -125,10 +125,10 @@ implements/
 - React / Next.js：少し触ったことがある、または初めて（Phase 1 で最初から学び直す）
 - JavaScript：基本の文法は既習（必要な文法は使う場面でおさらいする）
 - GitHub Actions：初めて
-- 環境：Windows + WSL2 Ubuntu、Node.js 24（nvm）、VS Code
+- 環境：Windows + PowerShell、Node.js 24 LTS（`winget install OpenJS.NodeJS.LTS`）、Git、VS Code
 - 使う技術：Next.js 16（App Router）/ React 19 / Jest + React Testing Library / ESLint + Prettier / GitHub Actions / Vercel / GitHub Pages
 
-プロジェクトは WSL2 の中（`~/workspace/`）に作り、`npm run dev` で起動して Windows 側のブラウザで http://localhost:3000 を開きます。
+プロジェクトは `~/workspace/`（`C:\Users\ユーザー名\workspace`）に作り、`npm run dev` で起動してブラウザで http://localhost:3000 を開きます。
 
 ---
 

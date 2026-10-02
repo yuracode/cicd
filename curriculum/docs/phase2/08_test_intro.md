@@ -74,7 +74,7 @@ Phase 1 で TODO アプリを作り、GitHub に push して PR でマージで�
 
 ### 3. Jest をインストールする
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -133,7 +133,7 @@ import '@testing-library/jest-dom'
 
 `package.json` の `scripts` にテスト用のコマンドを追加する。
 
-```bash
+```powershell
 npm pkg set scripts.test="jest" scripts.test:watch="jest --watch"
 ```
 
@@ -160,8 +160,8 @@ const remaining = todos.filter((todo) => !todo.done).length
 
 部品の中に埋め込まれていると、この計算だけを取り出して確かめにくい。**普通の関数として別ファイルに切り出す**。
 
-```bash
-mkdir -p lib
+```powershell
+mkdir -Force lib
 ```
 
 ```js
@@ -217,7 +217,7 @@ test('未完了の TODO の数を返す', () => {
 
 実行する。
 
-```bash
+```powershell
 npm test
 ```
 
@@ -291,7 +291,7 @@ expect({ a: 1 }).toEqual({ a: 1 })  // ○ 成功する
 
 ### 9. コミットして PR を出す
 
-```bash
+```powershell
 npm test
 git add .
 git commit -m "test: Jestを導入し countRemaining のテストを追加"
@@ -301,7 +301,7 @@ gh pr create --fill
 
 PR をマージしたら、手元の `main` を更新する。
 
-```bash
+```powershell
 git switch main
 git pull
 ```

@@ -44,7 +44,7 @@ main に push
 
 ### 1. next.config.mjs を切り替え式にする
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -76,8 +76,8 @@ export default nextConfig
 
 ### 2. 手元で Pages 向けにビルドして確かめる
 
-```bash
-GITHUB_PAGES=true npm run build
+```powershell
+$env:GITHUB_PAGES = "true"; npm run build; Remove-Item Env:GITHUB_PAGES
 ls out
 ls out/about
 ```
@@ -90,8 +90,8 @@ out/about/index.html  ...
 
 HTML の中のパスも確かめる。
 
-```bash
-grep -o 'href="[^"]*"' out/index.html | head -5
+```powershell
+Select-String -Path out/index.html -Pattern 'href="[^"]*"' -AllMatches | % { $_.Matches.Value } | Select-Object -First 5
 ```
 
 ```text
@@ -105,16 +105,16 @@ href="/todo-app/about/"
 
 Pages と同じ `/todo-app/` の下に置いて、手元で動作を確かめる。
 
-```bash
-rm -rf /tmp/pages-preview
-mkdir -p /tmp/pages-preview
-cp -r out /tmp/pages-preview/todo-app
-npx --yes serve /tmp/pages-preview
+```powershell
+Remove-Item -Recurse -Force $env:TEMP/pages-preview -ErrorAction Ignore
+mkdir -Force $env:TEMP/pages-preview
+Copy-Item -Recurse out $env:TEMP/pages-preview/todo-app
+npx --yes serve $env:TEMP/pages-preview
 ```
 
 http://localhost:3000/todo-app/ を開き、TODO の操作とページ移動ができることを確かめる。`Ctrl + C` で止める。
 
-> `GITHUB_PAGES=true npm run build` のように **コマンドの前に `変数=値`** を書くと、そのコマンドの間だけ環境変数を設定できる。
+> PowerShell では **`$env:変数名 = "値"`** で環境変数を設定する。設定はターミナルを閉じるまで残るので、ビルドが終わったら `Remove-Item Env:GITHUB_PAGES` で消している（消し忘れると、次の `npm run build` まで Pages 用になってしまう）。`$env:TEMP` は Windows の一時フォルダ。
 
 ### 3. デプロイのワークフローを書く
 
@@ -182,7 +182,7 @@ jobs:
 
 ### 4. GitHub Pages の設定をする
 
-```bash
+```powershell
 gh repo view --web
 ```
 
@@ -192,7 +192,7 @@ gh repo view --web
 
 ### 5. PR を出してマージする
 
-```bash
+```powershell
 git add .
 git commit -m "ci: GitHub Pagesへのデプロイを追加"
 git push -u origin ci/github-pages
@@ -202,7 +202,7 @@ gh pr checks --watch
 
 `deploy-pages.yml` は `main` への push でしか動かないので、PR では CI と Vercel のチェックだけが動く。緑になったらマージする。
 
-```bash
+```powershell
 gh pr merge --merge --delete-branch
 git switch main
 git pull
@@ -236,7 +236,7 @@ pathname === link.href   // '/about/' === '/about' → false
 
 比べる処理を関数に切り出し、**先にテストを書く**。
 
-```bash
+```powershell
 git switch -c fix/current-path
 ```
 
@@ -288,7 +288,7 @@ import { isCurrentPath } from '@/lib/nav'
 })}
 ```
 
-```bash
+```powershell
 npm test
 git add .
 git commit -m "fix: 末尾にスラッシュがあっても現在のページを判定できるようにする"
@@ -327,7 +327,7 @@ HTML は `/todo/_next/...` を読み込もうとするが、実際のファイ�
 
 作業ブランチから、手動で Pages のデプロイを動かしてみる。
 
-```bash
+```powershell
 gh workflow run deploy-pages.yml --ref <作業ブランチ名>
 gh run watch
 ```

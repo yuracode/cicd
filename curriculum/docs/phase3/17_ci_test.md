@@ -36,7 +36,7 @@ Phase 2 で書いたテストを CI でも実行する。これで PR を出す�
 
 ### 1. 手元でテストとカバレッジを確認する
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -44,10 +44,10 @@ git switch -c ci/test
 
 npm test
 npm run test:coverage
-echo $?
+$LASTEXITCODE
 ```
 
-`echo $?` が `0` ならOK。
+`$LASTEXITCODE` が `0` ならOK（`$LASTEXITCODE` は直前のコマンドの終了コード）。
 
 > `test:coverage` がない人は、コマ13の本題 1 と 5（`collectCoverageFrom` と `coverageThreshold`）を先に済ませておく。最低限、`npm pkg set scripts.test:coverage="jest --coverage"` だけでも今日の手順は進められる。
 
@@ -151,7 +151,7 @@ GitHub Actions のランナーでは、環境変数 `CI=true` が最初から設
 
 ### 5. push して確認する
 
-```bash
+```powershell
 git add .github/workflows/ci.yml
 git commit -m "ci: テストジョブを追加し、lint・test・buildに分割"
 git push -u origin ci/test
@@ -167,10 +167,10 @@ Actions タブで実行を開き、ページの下のほうの **Artifacts** に
 
 ターミナルからダウンロードして、HTML レポートを開く。
 
-```bash
+```powershell
 gh run list --limit 3
-gh run download <実行のID> -n coverage-report -D /tmp/coverage-report
-explorer.exe "$(wslpath -w /tmp/coverage-report/lcov-report/index.html)"
+gh run download <実行のID> -n coverage-report -D $env:TEMP/coverage-report
+start $env:TEMP/coverage-report/lcov-report/index.html
 ```
 
 `<実行のID>` は `gh run list` の一番右の数字。手元で `npm run test:coverage` したときと同じレポートが見られる。
@@ -179,7 +179,7 @@ explorer.exe "$(wslpath -w /tmp/coverage-report/lcov-report/index.html)"
 
 確認できたら PR をマージする。
 
-```bash
+```powershell
 gh pr merge --merge --delete-branch
 git switch main
 git pull
@@ -187,7 +187,7 @@ git pull
 
 ### 7. テストを失敗させて、CI のログを読む
 
-```bash
+```powershell
 git switch -c test/break-test
 ```
 
@@ -201,7 +201,7 @@ export function countRemaining(todos) {
 
 **手元でテストを実行せずに** push する（CI が見つけてくれるかを確かめるため）。
 
-```bash
+```powershell
 git commit -am "test: わざとバグを入れる"
 git push -u origin test/break-test
 gh pr create --fill
@@ -228,7 +228,7 @@ FAIL lib/todos.test.js
 
 `!` を戻して push し、緑になったら PR は閉じる。
 
-```bash
+```powershell
 git commit -am "fix: countRemaining を元に戻す"
 git push
 gh pr checks --watch

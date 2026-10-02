@@ -17,7 +17,7 @@
 
 ### 前回の振り返り
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -82,7 +82,7 @@ export default function TodoList({ todos, onToggle, onDelete }) {
 }
 ```
 
-```bash
+```powershell
 git switch -c test/todo-components
 ```
 
@@ -112,7 +112,7 @@ test('TODO の文字が表示される', () => {
 | `toBeInTheDocument()` | 画面の中にあること（`jest.setup.js` で追加したマッチャー） |
 | `onToggle={() => {}}` | 今回は使わないので「何もしない関数」を渡しておく |
 
-```bash
+```powershell
 npm test
 ```
 
@@ -243,7 +243,7 @@ screen.debug()
 
 ターミナルに、今の HTML が表示される。探したい要素が **本当にあるか**、**どんな名前が付いているか** を確認できる。確認が終わったら消しておく。
 
-```bash
+```powershell
 npm test
 git add .
 git commit -m "test: TodoItem と TodoList の表示テストを追加"
@@ -269,7 +269,7 @@ test('見出しが表示される', () => {
 
 > `async function` のページ（サーバでデータを取ってくるページ）は、この方法ではテストできない。コマ13で扱う。
 
-```bash
+```powershell
 npm test
 git add .
 git commit -m "test: aboutページの表示テストを追加"

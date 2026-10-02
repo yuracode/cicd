@@ -47,7 +47,7 @@ E2E テストは遅く、ちょっとした変更で壊れやすい。だから 
 
 ### 1. Playwright を入れる
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -58,7 +58,7 @@ npx playwright install --with-deps chromium
 ```
 
 - `@playwright/test`：E2E テストを書いて実行する本体
-- `npx playwright install --with-deps chromium`：テストで使う Chromium と、WSL2（Ubuntu）で動かすのに必要なライブラリを入れる（パスワードを聞かれたら入力する）
+- `npx playwright install --with-deps chromium`：テストで使う Chromium を入れる（`--with-deps` は Linux で必要なライブラリも入れる指定。Windows では何もしないが、CI と同じコマンドにそろえておく）
 
 ### 2. 設定ファイルを作る
 
@@ -111,9 +111,21 @@ Jest は `.test.js` だけでなく `.spec.js` も探すので、E2E テスト�
 
 Playwright が作るフォルダを、Git・ESLint・Prettier の対象から外す。
 
-```bash
-printf '\n# Playwright\n/test-results/\n/playwright-report/\n/blob-report/\n/playwright/.cache/\n' >> .gitignore
-printf 'playwright-report\ntest-results\n' >> .prettierignore
+`.gitignore` の末尾に追加する。
+
+```text
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+```
+
+`.prettierignore` の末尾に追加する。
+
+```text
+playwright-report
+test-results
 ```
 
 ```js
@@ -124,14 +136,14 @@ printf 'playwright-report\ntest-results\n' >> .prettierignore
 
 実行するコマンドを追加する。
 
-```bash
+```powershell
 npm pkg set scripts.test:e2e="playwright test"
 ```
 
 ### 4. 最初の E2E テスト
 
-```bash
-mkdir -p e2e
+```powershell
+mkdir -Force e2e
 ```
 
 ```js
@@ -169,7 +181,7 @@ test('TODO を追加・完了・削除できる', async ({ page }) => {
 
 > **`await expect(...)` は自動で待つ**：Playwright の `expect` は、条件を満たすまで最大5秒くり返し確かめてくれる。RTL の `findBy` に当たる待ちが、最初から組み込まれている。
 
-```bash
+```powershell
 npm run test:e2e
 ```
 
@@ -236,7 +248,7 @@ test('サンプルを読み込める（通信を差し替える）', async ({ pa
 await expect(page.getByText('残り 3 件')).toBeVisible()   // 本当は 2 件
 ```
 
-```bash
+```powershell
 npm run test:e2e
 npx playwright show-report
 ```
@@ -245,11 +257,11 @@ HTML のレポートが開き、**失敗した時点の画面のスクリーン�
 
 さらに便利なのが **UI モード**。
 
-```bash
+```powershell
 npx playwright test --ui
 ```
 
-テストを1ステップずつ再生しながら、そのときの画面と HTML を見られる（Windows 11 の WSL2 なら、ウインドウがそのまま Windows 側に表示される）。確かめたら、テストを元に戻す。
+テストを1ステップずつ再生しながら、そのときの画面と HTML を見られる。確かめたら、テストを元に戻す。
 
 ### 8. CI/CD パイプラインに組み込む
 
@@ -294,7 +306,7 @@ npx playwright test --ui
 | `timeout-minutes: 15` | E2E は固まることがある。上限を決めておく |
 | `if: failure()` | **失敗したときだけ** レポートを保存する |
 
-```bash
+```powershell
 npm run lint
 npm test
 npm run test:e2e
@@ -350,9 +362,9 @@ test('ヘッダーからページを移動できる', async ({ page }) => {
 
 わざと失敗する E2E テストを PR で push し、CI の `e2e` ジョブが赤くなることを確かめる。Actions の実行ページから `playwright-report` をダウンロードして開く。
 
-```bash
-gh run download <実行のID> -n playwright-report -D /tmp/playwright-report
-npx playwright show-report /tmp/playwright-report
+```powershell
+gh run download <実行のID> -n playwright-report -D $env:TEMP/playwright-report
+npx playwright show-report $env:TEMP/playwright-report
 ```
 
 **確認方法**：CI で失敗した時点のスクリーンショットとトレースを、手元のレポートで見られればOK。確かめたらテストを直す。
@@ -392,7 +404,7 @@ npx playwright show-report /tmp/playwright-report
 
 ### よくある詰まりポイント
 
-- **`browserType.launch` で失敗する**：WSL2 にブラウザ用のライブラリが足りない。`npx playwright install --with-deps chromium` をもう一度実行する
+- **`browserType.launch` で失敗する**：ブラウザ本体が入っていない。`npx playwright install --with-deps chromium` をもう一度実行する
 - **Jest が `e2e/` のファイルを実行してエラーになる**：`jest.config.mjs` の `testPathIgnorePatterns` に `'<rootDir>/e2e/'` を入れる
 - **`getByRole('alert')` が別の要素に一致する**：Next.js はページ移動を読み上げソフトに伝えるための要素（`role="alert"`）を自動で置いている。`page.getByRole('alert').filter({ hasText: '...' })` のように文字で絞り込む
 - **CI でだけ時間切れになる**：CI では `build` から始めるので時間がかかる。`webServer.timeout` と `timeout-minutes` を確認する

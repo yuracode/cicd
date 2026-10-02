@@ -47,13 +47,13 @@ MSW：          アプリ → 本物の fetch → [偽物のサーバ]      ← 
 
 ### 1. インストールと Jest の設定
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
 git switch -c feature/msw
 
-npm install -D msw jest-fixed-jsdom
+npm install -D msw jest-fixed-jsdom cross-env
 ```
 
 `jest.config.mjs` の `testEnvironment` を変える。
@@ -67,18 +67,20 @@ npm install -D msw jest-fixed-jsdom
 
 `package.json` のテスト用のコマンドを変える。
 
-```bash
-npm pkg set scripts.test="NODE_OPTIONS=--experimental-vm-modules jest" scripts.test:watch="NODE_OPTIONS=--experimental-vm-modules jest --watch" scripts.test:coverage="NODE_OPTIONS=--experimental-vm-modules jest --coverage"
+```powershell
+npm pkg set scripts.test="cross-env NODE_OPTIONS=--experimental-vm-modules jest" scripts.test:watch="cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch" scripts.test:coverage="cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage"
 ```
 
 > **`NODE_OPTIONS=--experimental-vm-modules` の意味**：MSW が使っている部品の中に、**ES モジュール（`import` / `export`）の形でしか配布されていないもの** がある。Jest は標準では古い形式（CommonJS）でファイルを読み込むので、そのままだと `Must use import to load ES Module` というエラーになる。このオプションで、Node.js 24 の「ES モジュールを読み込む機能」を Jest の中でも使えるようにしている。実行すると `ExperimentalWarning` が1行出るが、問題ない。
+>
+> **`cross-env` の意味**：npm の scripts は Windows では cmd.exe で実行されるので、Linux 流の `変数=値 コマンド` という書き方が使えない。`cross-env 変数=値 コマンド` と書くと、Windows でも Linux（CI）でも同じように環境変数を設定してくれる。
 
 ### 2. ハンドラ：偽物の API の仕様書
 
 「どの URL に何を返すか」を **ハンドラ** として書く。置き場所は `mocks/`。
 
-```bash
-mkdir -p mocks
+```powershell
+mkdir -Force mocks
 ```
 
 ```js
@@ -162,7 +164,7 @@ test('通信そのものが失敗したら例外を投げる', async () => {
 | `new HttpResponse(null, { status: 500 })` | ステータス 500 のレスポンス。本物の `fetch` と同じく `res.ok` が `false` になる |
 | `HttpResponse.error()` | 通信そのものの失敗（ネットにつながらない状態）を再現する |
 
-```bash
+```powershell
 npm test
 ```
 
@@ -226,7 +228,7 @@ test('通信中は「読み込み中…」を表示する', async () => {
 - **`waitFor(() => expect(...))`**：中の `expect` が通るまで、少しずつ待ちながらくり返す。通信の結果を待つときに使う
 - **`delay(200)`**：MSW の機能で、応答を 200 ミリ秒遅らせる。コマ12の演習4では「自分で成功させるタイミングを決める Promise」を作ったが、MSW なら1行で済む
 
-```bash
+```powershell
 npm test
 git add .
 git commit -m "test: MSWで通信をモックする"
@@ -238,7 +240,7 @@ MSW のもう1つの強みは、**テストと同じハンドラを、開発中�
 
 ブラウザ用の Service Worker のファイルを `public/` に作る。
 
-```bash
+```powershell
 npx msw init public --save
 ```
 
@@ -249,8 +251,10 @@ npx msw init public --save
     'public/mockServiceWorker.js',
 ```
 
-```bash
-echo "public/mockServiceWorker.js" >> .prettierignore
+`.prettierignore` の末尾にも1行足す。
+
+```text
+public/mockServiceWorker.js
 ```
 
 ブラウザ用の設定を作る。
@@ -319,8 +323,8 @@ import MswProvider from '@/components/MswProvider'
 
 モックを有効にして起動するコマンドを追加する。
 
-```bash
-npm pkg set scripts.dev:mock="NEXT_PUBLIC_API_MOCKING=enabled next dev"
+```powershell
+npm pkg set scripts.dev:mock="cross-env NEXT_PUBLIC_API_MOCKING=enabled next dev"
 npm run dev:mock
 ```
 
@@ -333,7 +337,7 @@ npm run dev:mock
 
 `npm run dev`（モックなし）で起動し直すと、本物の JSONPlaceholder のデータに戻る。
 
-```bash
+```powershell
 npm run lint
 npm test
 npm run build
@@ -418,7 +422,7 @@ http.get('https://jsonplaceholder.typicode.com/todos', ({ request }) => {
 ### よくある詰まりポイント
 
 - **`ReferenceError: Request is not defined`**：`testEnvironment` が `'jest-fixed-jsdom'` になっているか確認する
-- **`Must use import to load ES Module`**：`npm test` のコマンドに `NODE_OPTIONS=--experimental-vm-modules` が付いているか確認する（`npx jest` を直接実行するときも同じように付ける）
+- **`Must use import to load ES Module`**：`npm test` のコマンドに `cross-env NODE_OPTIONS=--experimental-vm-modules` が付いているか確認する（`npx jest` を直接実行するときは `npx cross-env NODE_OPTIONS=--experimental-vm-modules jest` とする）
 - **`server.use` の上書きが他のテストに影響する**：`jest.setup.js` に `afterEach(() => server.resetHandlers())` があるか確認する
 - **ブラウザでモックが効かない**：`public/mockServiceWorker.js` があるか、`npm run dev:mock`（環境変数付き）で起動しているかを確認する
 

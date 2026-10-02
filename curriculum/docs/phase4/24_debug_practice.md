@@ -31,7 +31,7 @@
 
 > 今日の作業はすべて **練習用のブランチ** で行い、最後にブランチごと捨てる。`main` には何もマージしない。
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -54,7 +54,7 @@ git switch -c practice/debug
 
 ターミナルで CI の結果を見るコマンドもおさらいしておく。
 
-```bash
+```powershell
 gh pr checks                          # PR のチェックの一覧
 gh run list --limit 5                 # 最近の実行
 gh run view <実行のID> --log-failed   # 失敗したステップのログだけを表示
@@ -70,7 +70,7 @@ gh run view <実行のID> --log-failed   # 失敗したステップのログだ�
     steps:
 ```
 
-```bash
+```powershell
 git commit -am "practice: 事件1"
 git push -u origin practice/debug
 gh pr create --title "練習：トラブルシューティング" --body "練習用。マージしない。"
@@ -98,7 +98,7 @@ gh pr create --title "練習：トラブルシューティング" --body "練習
   "next": "...",
 ```
 
-```bash
+```powershell
 git commit -am "practice: 事件2"
 git push
 ```
@@ -120,7 +120,7 @@ or npm-shrinkwrap.json are in sync. Please update your lock file with `npm insta
 
 **直す**：パッケージを足したいなら `npm install dayjs` を使う（両方のファイルが更新される）。今回は不要なので、`package.json` から `dayjs` の行を消す。
 
-```bash
+```powershell
 npm ci
 git commit -am "practice: 事件2を直す"
 git push
@@ -149,7 +149,7 @@ test('日本時間の朝8時は「おはようございます」', () => {
 })
 ```
 
-```bash
+```powershell
 npm test        # 手元では通る
 git add .
 git commit -m "practice: 事件3"
@@ -166,8 +166,9 @@ git push
 
 **再現する**：手元では通るので、**CI と手元の違い** を疑う。GitHub Actions のランナーの時計は **UTC**（日本時間 − 9時間）だった（コマ15）。手元でも UTC にして実行してみる。
 
-```bash
-TZ=UTC npm test
+```powershell
+$env:TZ = "UTC"; npm test
+Remove-Item Env:TZ   # 後片付け
 ```
 
 同じ失敗が再現した。日本時間の朝8時は UTC では前の日の23時なので、`getHours()` が `23` を返していた。
@@ -177,7 +178,7 @@ TZ=UTC npm test
 | 方法 | 書き方 | 考え方 |
 |------|--------|--------|
 | テストの時刻を「その環境の時刻」で作る | `new Date(2026, 9, 1, 8, 0)`（月は0始まり） | どのタイムゾーンでも「その場所の朝8時」になる |
-| テストを実行するタイムゾーンを固定する | `package.json` の `test` を `"TZ=Asia/Tokyo jest"` にする | 日本の利用者向けのアプリなので、日本時間で確かめる |
+| テストを実行するタイムゾーンを固定する | `package.json` の `test` を `"cross-env TZ=Asia/Tokyo jest"` にする（`npm install -D cross-env` が必要） | 日本の利用者向けのアプリなので、日本時間で確かめる |
 | 関数に時刻（時）だけを渡す設計にする | `greetingFor(hour)` | 日付やタイムゾーンを関数の外で扱う |
 
 ここでは1つ目で直す。
@@ -188,14 +189,15 @@ test('朝8時は「おはようございます」', () => {
 })
 ```
 
-```bash
-TZ=UTC npm test
-TZ=Asia/Tokyo npm test
+```powershell
+$env:TZ = "UTC"; npm test
+$env:TZ = "Asia/Tokyo"; npm test
+Remove-Item Env:TZ   # 後片付け（このターミナルの間ずっと残るため）
 git commit -am "practice: 事件3を直す（タイムゾーンに依存しないテストにする）"
 git push
 ```
 
-> **日時・タイムゾーン・言語設定** は、「手元では通るのに CI で落ちる」原因の代表。日時を扱うテストを書いたら、`TZ=UTC npm test` でも確かめるクセをつける。
+> **日時・タイムゾーン・言語設定** は、「手元では通るのに CI で落ちる」原因の代表。日時を扱うテストを書いたら、`$env:TZ = "UTC"; npm test` でも確かめるクセをつける（PowerShell の `$env:変数名 = 値` は、そのターミナルを閉じるか `Remove-Item Env:変数名` するまで残る）。
 
 ##  演習
 
@@ -218,7 +220,7 @@ test('空白だけでは TODO は増えない', async () => {
 
 さらに、手元で次の2つを実行して結果を比べる。
 
-```bash
+```powershell
 npx jest components/TodoApp.test.js
 npx jest components/TodoApp.test.js -t '空白'
 ```
@@ -300,7 +302,7 @@ Error: Ensure GITHUB_TOKEN has permission "id-token: write".
 
 練習が終わったら、PR を閉じてブランチを消す。
 
-```bash
+```powershell
 gh pr close --delete-branch
 git switch main
 git branch -D practice/debug
@@ -312,7 +314,7 @@ npm ci
 ### 今日できるようになったこと
 
 - 「どこで → 何が → 再現 → なぜ → 直して確かめる」の順に、CI の失敗の原因を絞り込めるようになった
-- `gh run view --log-failed` や `TZ=UTC npm test` などで、CI と同じ状況を手元で再現できるようになった
+- `gh run view --log-failed` や `$env:TZ = "UTC"` などで、CI と同じ状況を手元で再現できるようになった
 - ロックファイルの不一致、タイムゾーン、テストの順番、サーバでの実行、権限、チェック名の食い違いといった典型的な失敗を経験した
 
 ### よくある詰まりポイント
@@ -335,7 +337,7 @@ npm ci
 ### 応用課題（推奨）
 
 3. 隣の人と「事件」を出し合う。相手のリポジトリの練習用ブランチに、わざと1か所だけ壊したコミットを PR で送り、相手はログだけを見て原因を当てる
-4. `package.json` の `test` を `"TZ=Asia/Tokyo jest"` にした場合と、テストの書き方で直した場合（本題の事件3）の、良い点・悪い点を比べる
+4. `package.json` の `test` を `"cross-env TZ=Asia/Tokyo jest"` にした場合と、テストの書き方で直した場合（本題の事件3）の、良い点・悪い点を比べる
 
 ### チャレンジ課題（挑戦）
 

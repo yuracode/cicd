@@ -29,7 +29,7 @@
 
 改善の第一歩は **測ること**。「速くなった気がする」ではなく、変更の前と後を数字で比べる。
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 gh run list --workflow=ci.yml --limit 5
 gh run view <実行のID>
@@ -41,7 +41,7 @@ gh run view <実行のID>
 
 ### 1. ブランチを切る
 
-```bash
+```powershell
 git switch main
 git pull
 git switch -c ci/improve
@@ -62,8 +62,8 @@ git switch -c ci/improve
 
 「Node.js を用意して `npm ci` する」部分を、**自分専用のアクション** にまとめる。
 
-```bash
-mkdir -p .github/actions/setup
+```powershell
+mkdir -Force .github/actions/setup
 ```
 
 ```yaml
@@ -114,10 +114,10 @@ runs:
 
 Next.js は、ビルドの途中の結果を `.next/cache` に保存し、次のビルドで使い回す。手元で試してみる。
 
-```bash
-rm -rf .next
-time npm run build     # 1回目
-time npm run build     # 2回目（.next/cache が残っている）
+```powershell
+Remove-Item -Recurse -Force .next
+Measure-Command { npm run build }     # 1回目（TotalSeconds を見る）
+Measure-Command { npm run build }     # 2回目（.next/cache が残っている）
 ```
 
 ```text
@@ -154,8 +154,8 @@ real    0m2.600s   ← 2回目
 
 ### 5. push して効果を測る
 
-```bash
-npx --yes js-yaml .github/workflows/ci.yml > /dev/null && echo "YAML OK"
+```powershell
+npx --yes js-yaml .github/workflows/ci.yml > $null; if ($LASTEXITCODE -eq 0) { "YAML OK" }
 git add .
 git commit -m "ci: Composite Actionで共通化し、Next.jsのビルドキャッシュとtimeoutを追加"
 git push -u origin ci/improve
@@ -212,7 +212,7 @@ updates:
 | `open-pull-requests-limit` | 同時に開く PR の上限 |
 | `groups` | 関係の深いパッケージを **1つの PR にまとめる**。`next` と `eslint-config-next` はバージョンをそろえる必要があるので、一緒に更新させる |
 
-```bash
+```powershell
 git switch main
 git pull
 git switch -c chore/dependabot
@@ -224,7 +224,7 @@ gh pr create --fill
 
 マージすると、GitHub がパッケージの新しいバージョンを調べ、**更新の PR を自動で作る** ようになる（最初の PR が来るまで少し時間がかかることがある）。
 
-```bash
+```powershell
 gh pr list --author "app/dependabot"
 ```
 
@@ -267,8 +267,8 @@ Dependabot が作るのは **ふつうの PR**。つまり、**これまで作�
 
 **確認方法**：`ci.yml` の中に `node-version: 24` が **1か所も出てこない**（`action.yml` にだけある）状態になればOK。
 
-```bash
-grep -n "node-version" .github/workflows/ci.yml .github/actions/setup/action.yml
+```powershell
+Select-String -Pattern "node-version" -Path .github/workflows/ci.yml, .github/actions/setup/action.yml
 ```
 
 ### 演習3（応用）：Dependabot の PR を1つマージする
@@ -286,7 +286,7 @@ Dependabot から来た PR を1つ選び、次の手順で扱う。
 
 ### 演習4（早く終わった人向け）：脆弱性の情報を確かめる
 
-```bash
+```powershell
 npm audit
 ```
 

@@ -19,7 +19,7 @@
 
 前回作ったプロジェクト `hello-next` を起動しておく。
 
-```bash
+```powershell
 cd ~/workspace/hello-next
 npm run dev
 ```
@@ -95,8 +95,8 @@ export default function Home() {
 
 プロジェクト直下に `components` フォルダを作り、`Greeting.js` を作る。
 
-```bash
-mkdir -p components
+```powershell
+mkdir -Force components
 ```
 
 ```jsx
@@ -444,7 +444,7 @@ export default function Home() {
 
 1. 演習1〜3を完成させてコミットする
 
-```bash
+```powershell
 git add .
 git commit -m "ProfileCard コンポーネントを作成"
 ```

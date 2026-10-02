@@ -17,7 +17,7 @@
 
 ### 前回の振り返り
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 npm run dev
 ```
@@ -203,7 +203,7 @@ export default function Home() {
 2. ブラウザを再読み込み → **TODO と完了状態が残っていれば成功**
 3. 開発者ツール → **Application** タブ → Local Storage → `http://localhost:3000` で、`todos` に JSON が入っていることを確認する
 
-```bash
+```powershell
 git add .
 git commit -m "TODOをlocalStorageに保存"
 ```
@@ -220,8 +220,8 @@ Next.js の App Router では、**`app/` の中のフォルダ構成がそのま
 
 `app/about/page.js` を作る。
 
-```bash
-mkdir -p app/about
+```powershell
+mkdir -Force app/about
 ```
 
 ```jsx
@@ -345,7 +345,7 @@ export default function RootLayout({ children }) {
 2. 今いるページのリンクが白い太字になる
 3. TODO を追加 → about へ移動 → TODO に戻る → TODO が残っている
 
-```bash
+```powershell
 git add .
 git commit -m "aboutページと共通ヘッダーを追加"
 ```
@@ -485,7 +485,7 @@ function loadTodos() {
 
 1. 演習1〜3を完成させてコミットする
 
-```bash
+```powershell
 git add .
 git commit -m "404ページ・使い方ページ・読み込みエラー対策を追加"
 ```

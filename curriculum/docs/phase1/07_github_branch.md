@@ -49,9 +49,9 @@ feature/xxx      ●───●───●───●
 
 GitHub への push にはログイン（認証）が必要。**GitHub CLI（`gh`）** を使うと、ブラウザ経由で簡単に設定できる。
 
-```bash
-sudo apt update
-sudo apt install gh -y
+```powershell
+winget install --id GitHub.cli -e
+# インストール後、ターミナルを開き直してから次へ
 
 gh auth login
 ```
@@ -65,30 +65,30 @@ gh auth login
 | Authenticate Git with your GitHub credentials? | **Yes** |
 | How would you like to authenticate? | **Login with a web browser** |
 
-表示された8桁のコードを控えて Enter。ブラウザでコードを入力して許可する（ブラウザが自動で開かない場合は、表示された URL を Windows 側のブラウザで開く）。
+表示された8桁のコードを控えて Enter。ブラウザでコードを入力して許可する（ブラウザが自動で開かない場合は、表示された URL をブラウザで開く）。
 
-```bash
+```powershell
 gh auth status
 # => Logged in to github.com account ユーザー名
 ```
 
 ### 2. リポジトリを作って push する
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git status
 ```
 
 `create-next-app` が最初から `git init` してくれているので、コミットし忘れがあれば先にコミットする。
 
-```bash
+```powershell
 git add .
 git commit -m "chore: コマ6までの実装"
 ```
 
 `.gitignore` も確認しておく。
 
-```bash
+```powershell
 cat .gitignore
 ```
 
@@ -96,7 +96,7 @@ cat .gitignore
 
 GitHub 上にリポジトリを作って push する。
 
-```bash
+```powershell
 gh repo create todo-app --public --source=. --remote=origin --push
 ```
 
@@ -109,7 +109,7 @@ gh repo create todo-app --public --source=. --remote=origin --push
 
 ブラウザで確認する。
 
-```bash
+```powershell
 gh repo view --web
 ```
 
@@ -119,7 +119,7 @@ gh repo view --web
 
 いきなりコードを書く前に、**何をするか** を GitHub の Issue に書いておく。
 
-```bash
+```powershell
 gh issue create --title "すべて削除ボタンを追加する" --body "TODO を一度に全部消せるボタンがほしい。誤操作防止のため確認ダイアログを出す。"
 ```
 
@@ -133,7 +133,7 @@ https://github.com/ユーザー名/todo-app/issues/1
 
 ### 4. 作業ブランチを切る
 
-```bash
+```powershell
 git switch -c feature/clear-all
 git branch
 # => * feature/clear-all
@@ -169,7 +169,7 @@ function clearAll() {
 
 確認できたらコミットする。
 
-```bash
+```powershell
 git status
 git diff
 git add components/TodoApp.js
@@ -194,7 +194,7 @@ git commit -m "feat: すべて削除ボタンを追加"
 
 ### 6. ブランチを push して PR を作る
 
-```bash
+```powershell
 git push -u origin feature/clear-all
 ```
 
@@ -202,8 +202,8 @@ git push -u origin feature/clear-all
 
 PR（プルリクエスト）を作る。
 
-```bash
-gh pr create --title "すべて削除ボタンを追加" --body "$(cat <<'EOF'
+```powershell
+gh pr create --title "すべて削除ボタンを追加" --body @'
 Closes #1
 
 ## 変更内容
@@ -214,14 +214,15 @@ Closes #1
 - [x] TODO が0件のときはボタンが押せない
 - [x] キャンセルでは何も消えない
 - [x] OK で全件消える
-EOF
-)"
+'@
 ```
+
+> **`@'` 〜 `'@` とは**：PowerShell の **ヒア文字列**。複数行の文章をそのまま1つの文字列として渡せる。閉じの `'@` は必ず **行の先頭** に書く（前に空白があるとエラーになる）。
 
 - **PR とは**：「このブランチの変更を `main` に取り込んでください」というお願い。変更内容の確認（レビュー）や議論の場になる
 - **`Closes #1`**：この PR がマージされると Issue #1 が自動で閉じる
 
-```bash
+```powershell
 gh pr view --web
 ```
 
@@ -236,7 +237,7 @@ PR ページの **Files changed** タブで、自分の差分を他人の目で�
 
 手元の `main` を最新にする。
 
-```bash
+```powershell
 git switch main
 git pull
 git branch -d feature/clear-all
@@ -245,7 +246,7 @@ git log --oneline --graph -5
 
 Issue #1 が「Closed」になっていることも確認する。
 
-```bash
+```powershell
 gh issue list --state closed
 ```
 
@@ -277,7 +278,7 @@ Next.js（App Router）で作った TODO アプリです。
 
 ## 起動方法
 
-```bash
+```powershell
 npm install
 npm run dev
 ```
@@ -315,7 +316,7 @@ http://localhost:3000 を開く。
 <details>
 <summary>手順の例とコンフリクトの読み方</summary>
 
-```bash
+```powershell
 git switch main
 git switch -c feature/about-text     # 先にブランチを作っておく
 git switch main
@@ -343,7 +344,7 @@ git merge main
 
 どちらかを残す、または両方を合わせた文にして、記号の行はすべて消す。
 
-```bash
+```powershell
 git add app/about/page.js
 git commit -m "merge: main を取り込みコンフリクトを解消"
 git push -u origin feature/about-text
@@ -372,7 +373,7 @@ gh pr create --fill
 
 - **`git push` で `rejected`**：GitHub 側の `main` が手元より進んでいる。`git pull` で取り込んでから push する
 - **PR に関係ないファイルが混ざる**：`git add .` の前に `git status` と `git diff` で確認する。`.next/` や `node_modules/` が出てくる場合は `.gitignore` を確認する
-- **`gh auth login` のブラウザが開かない**：表示された URL を Windows 側のブラウザに貼り付けて開けばよい
+- **`gh auth login` のブラウザが開かない**：表示された URL をブラウザに貼り付けて開けばよい
 
 ### 次コマ予告
 

@@ -17,7 +17,7 @@
 
 ### 前回の振り返り
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -71,7 +71,7 @@ function handleDelete(id) {
 
 ### 2. ブランチを切って関数を切り出す
 
-```bash
+```powershell
 git switch -c refactor/todo-logic
 ```
 
@@ -169,7 +169,7 @@ describe('countRemaining', () => {
 - **`sample`**：複数のテストで使う共通のデータ。ファイルの上のほうに1回だけ書く
 - **`expect.any(String)`**：「何かの文字列であればよい」という意味。ID は毎回ランダムに変わるので、値そのものではなく **型だけ** 確かめる
 
-```bash
+```powershell
 npm test
 ```
 
@@ -298,14 +298,14 @@ export default function TodoApp() {
 
 テストとブラウザの両方で確認する。
 
-```bash
+```powershell
 npm test
 npm run dev
 ```
 
 ブラウザで追加・完了・削除がこれまでどおり動けばOK。このように **動きを変えずにコードの中身を整理すること** を **リファクタリング** と呼ぶ。テストがあると、整理しても壊していないと自信を持てる。
 
-```bash
+```powershell
 git add .
 git commit -m "refactor: TODOの操作をlib/todos.jsの純粋関数に切り出し"
 ```
@@ -349,7 +349,7 @@ describe('filterTodos', () => {
 
 `%s`（文字列）や `%j`（JSON）の部分に、表の値が入ってテスト名が作られる。
 
-```bash
+```powershell
 git add .
 git commit -m "feat: filterTodos を追加"
 git push -u origin refactor/todo-logic

@@ -42,7 +42,7 @@
 
 ### 1. オーナー：メンバーを招待する
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 gh repo view --web
 ```
@@ -68,7 +68,7 @@ gh repo view --web
 
 オーナー以外のメンバーは、オーナーのリポジトリをクローンする。
 
-```bash
+```powershell
 cd ~/workspace
 gh repo clone <オーナーのユーザー名>/todo-app team-todo
 cd team-todo
@@ -92,7 +92,7 @@ npm run dev
 
 **わざと同じファイルを触る Issue を選んでいる**。後でコンフリクトが起きるのは想定どおり。
 
-```bash
+```powershell
 gh issue create --title "TODOに期限を付ける" --body "期限（日付）を入力でき、期限切れの未完了TODOは赤字で表示する。" --assignee <担当者のユーザー名>
 ```
 
@@ -100,7 +100,7 @@ GitHub の Issue の画面で、担当者（Assignees）が設定されている
 
 ### 5. 全員：ブランチを切って実装する
 
-```bash
+```powershell
 git switch main
 git pull
 git switch -c feature/<Issueの内容>
@@ -112,11 +112,11 @@ git switch -c feature/<Issueの内容>
 2. 手元で `npm run lint`、`npm test`、`npm run build` が通ってから push する
 3. PR の本文に `Closes #<Issue番号>` と、**動作確認の手順** を書く
 
-```bash
+```powershell
 git add .
 git commit -m "feat: TODOに期限を付ける"
 git push -u origin feature/<Issueの内容>
-gh pr create --title "TODOに期限を付ける" --body "$(cat <<'EOF'
+gh pr create --title "TODOに期限を付ける" --body @'
 Closes #1
 
 ## 変更内容
@@ -128,13 +128,12 @@ Closes #1
 
 ## テスト
 - lib/todos.test.js に isOverdue のテストを追加
-EOF
-)"
+'@
 ```
 
 レビューを **依頼** する。
 
-```bash
+```powershell
 gh pr edit --add-reviewer <レビューしてほしい人のユーザー名>
 ```
 
@@ -142,7 +141,7 @@ gh pr edit --add-reviewer <レビューしてほしい人のユーザー名>
 
 依頼された PR を開く。
 
-```bash
+```powershell
 gh pr list
 gh pr view <PR番号> --web
 ```
@@ -178,7 +177,7 @@ gh pr view <PR番号> --web
 2. 対応したコメントに「直しました」と返信し、**Resolve conversation** を押す
 3. もう一度レビューを依頼する（**Dismiss stale approvals** により、前の承認は取り消されている）
 
-```bash
+```powershell
 git commit -am "fix: 期限が空のときは表示しない"
 git push
 gh pr edit --add-reviewer <レビューしてくれた人のユーザー名>
@@ -186,7 +185,7 @@ gh pr edit --add-reviewer <レビューしてくれた人のユーザー名>
 
 **CI が緑・承認が1つ以上・コメントがすべて解決済み** になったら、PR の作者がマージする。
 
-```bash
+```powershell
 gh pr merge --merge --delete-branch
 ```
 
@@ -201,7 +200,7 @@ Conflicting files: components/TodoItem.js
 
 手元で最新の `main` を取り込み、コンフリクトを解決する。
 
-```bash
+```powershell
 git switch feature/<自分のブランチ>
 git pull origin main
 ```
@@ -222,7 +221,7 @@ git pull origin main
 
 解決したら、テストが両方の機能で通ることを確かめてから push する。
 
-```bash
+```powershell
 npm test
 git add .
 git commit -m "merge: mainを取り込み、期限と優先度の表示を両立させる"
@@ -243,7 +242,7 @@ CI が動き直し、もう一度レビューを受けてからマージする�
 
 ふりかえりの内容は、オーナーのリポジトリに Issue として残しておく。
 
-```bash
+```powershell
 gh issue create --title "ふりかえり（コマ25）" --body "## Keep
 - ...
 ## Problem
@@ -316,7 +315,7 @@ Closes #
 
 全員の機能がマージされたら、この時点を「バージョン 1.1.0」としてリリースする。
 
-```bash
+```powershell
 git switch main
 git pull
 gh release create v1.1.0 --generate-notes --title "v1.1.0 チーム開発版"

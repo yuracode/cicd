@@ -58,7 +58,7 @@ PR を出すと lint・test・build が自動で実行され、全部緑でな�
 
 ### 2. ビルド結果の記号を読む
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -86,7 +86,7 @@ Route (app)
 
 Next.js の設定で `output: 'export'` にすると、ビルド結果を **HTML などのファイルだけ** で書き出せる。今日は試すだけなので、ブランチを切って作業する（コミットはしない）。
 
-```bash
+```powershell
 git switch -c try/static-export
 ```
 
@@ -100,7 +100,7 @@ const nextConfig = {
 export default nextConfig
 ```
 
-```bash
+```powershell
 npm run build
 ls out
 ```
@@ -113,8 +113,8 @@ ls out
 
 中身を開いて確かめる。
 
-```bash
-head -c 500 out/about.html
+```powershell
+(Get-Content -Raw out/about.html).Substring(0, 500)
 ```
 
 「このアプリについて」の文章が、HTML の中にすでに書き込まれている。
@@ -123,7 +123,7 @@ head -c 500 out/about.html
 
 `out/` をそのまま配信する簡単なサーバで確かめる。
 
-```bash
+```powershell
 npx --yes serve out
 ```
 
@@ -143,8 +143,8 @@ npx --yes serve out
 
 アクセスのたびに結果が変わる API（Route Handler）を追加してみる。
 
-```bash
-mkdir -p app/api/time
+```powershell
+mkdir -Force app/api/time
 ```
 
 ```js
@@ -156,7 +156,7 @@ export function GET() {
 }
 ```
 
-```bash
+```powershell
 npm run build
 ```
 
@@ -175,8 +175,8 @@ Error: export const dynamic = "force-dynamic" on page "/api/time" cannot be used
 
 試したものを片付ける。
 
-```bash
-rm -rf app/api out
+```powershell
+Remove-Item -Recurse -Force app/api, out
 git restore next.config.mjs
 git switch main
 git branch -D try/static-export
@@ -246,7 +246,7 @@ Phase 5 の個人制作では、自分のアプリの機能に合わせてどち
 本題3の手順で `out/` を作り（試したら片付ける）、次を調べる。
 
 1. `out/_next/static/` の中にあるファイルの種類（拡張子）と、だいたいの数
-2. `out/index.html` を `grep` して、`/_next/` で始まるパスがいくつ書かれているか（`grep -o '/_next/[^"]*' out/index.html | wc -l`）
+2. `out/index.html` を `grep` して、`/_next/` で始まるパスがいくつ書かれているか（`(Select-String -Path out/index.html -Pattern '/_next/[^"]*' -AllMatches).Matches.Count`）
 3. `out/` 全体のサイズ（`du -sh out`）
 
 **確認方法**：3つの結果をメモし、「このフォルダだけで公開できる理由」を1行で説明できればOK。
@@ -262,12 +262,12 @@ import Image from 'next/image'
 <Image src="/me.png" alt="自分の写真" width={120} height={120} />
 ```
 
-```bash
+```powershell
 npm run build
 npx --yes serve out
 ```
 
-**確認方法**：ビルドは成功するのに、`serve` で開いた about ページでは **画像が表示されない（壊れた画像になる）** ことを確かめる。開発者ツールの Network タブや `grep -o '<img[^>]*>' out/about.html` で画像の URL を調べ、原因を説明したうえで `next.config.mjs` を直して表示されるようにできればOK。試したら片付ける。
+**確認方法**：ビルドは成功するのに、`serve` で開いた about ページでは **画像が表示されない（壊れた画像になる）** ことを確かめる。開発者ツールの Network タブや `Select-String -Path out/about.html -Pattern '<img[^>]*>' -AllMatches | % { $_.Matches.Value }` で画像の URL を調べ、原因を説明したうえで `next.config.mjs` を直して表示されるようにできればOK。試したら片付ける。
 
 <details>
 <summary>解説</summary>

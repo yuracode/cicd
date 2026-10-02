@@ -45,7 +45,7 @@ Issue を選ぶ
 
 ### 1. 作業の準備：ターミナルを2つ開く
 
-```bash
+```powershell
 # ターミナル1：開発サーバ
 cd ~/workspace/pomodoro
 git switch main
@@ -53,7 +53,7 @@ git pull
 npm run dev
 ```
 
-```bash
+```powershell
 # ターミナル2：テストのウォッチモード
 cd ~/workspace/pomodoro
 npm run test:watch
@@ -63,7 +63,7 @@ VS Code の画面、ブラウザ、2つのターミナルが見える状態で�
 
 ### 2. Issue 1：ロジックをテストから作る
 
-```bash
+```powershell
 git switch -c feature/pomodoro-logic
 ```
 
@@ -135,7 +135,7 @@ export function tick(timer) {
 
 > **なぜ `remaining > 1` なの？** 残り1秒のときに `tick` すると、0:00 を表示せずにそのまま次のモードの最初（5:00 など）に切り替える。0:00 を一瞬見せたいかどうかは **仕様の決め事**。決めたことはテストに書いておくと、あとで迷わない。
 
-```bash
+```powershell
 npm run lint && npm test && npm run build
 git add .
 git commit -m "feat: タイマーの状態を進める tick を追加"
@@ -149,7 +149,7 @@ git pull
 
 ### 3. Issue 2：表示して、カウントダウンを動かす
 
-```bash
+```powershell
 git switch -c feature/countdown
 ```
 
@@ -230,7 +230,7 @@ export default function Timer() {
 
 ブラウザで、スタート → 数秒待つ → 一時停止 → 止まる、を確かめる。
 
-```bash
+```powershell
 npm run lint && npm test && npm run build
 git add .
 git commit -m "feat: カウントダウンとスタート・一時停止"
@@ -243,7 +243,7 @@ gh pr checks --watch
 
 ### 4. Issue 3・4：リセットと、休憩への切り替え
 
-```bash
+```powershell
 git switch main
 git pull
 git switch -c feature/mode-switch
@@ -293,7 +293,7 @@ export default function Timer() {
 
 動作確認：25分待つのは大変なので、**確認するときだけ** `lib/pomodoro.js` の `DURATIONS.work` を `5`（5秒）に変える。確認したら必ず戻す（テストが教えてくれる）。
 
-```bash
+```powershell
 npm run lint && npm test && npm run build
 git add .
 git commit -m "feat: リセットと休憩への自動切り替え、完了回数の表示"
@@ -308,7 +308,7 @@ gh pr merge --merge --delete-branch
 
 MVP の Issue がどこまで閉じたかを確かめる。
 
-```bash
+```powershell
 gh issue list
 gh issue list --state closed
 ```

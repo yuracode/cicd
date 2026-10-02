@@ -102,7 +102,7 @@ Vercel は、リポジトリにつないだ時点から **push のたびに自�
 
 ヘッダーの色を変える PR を作って、プレビューを体験する。
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -117,7 +117,7 @@ git switch -c feature/header-color
 }
 ```
 
-```bash
+```powershell
 git commit -am "style: ヘッダーの色を紺にする"
 git push -u origin feature/header-color
 gh pr create --fill
@@ -134,7 +134,7 @@ PR の画面で起きること：
 
 CI と Vercel のチェックが緑になったらマージする。
 
-```bash
+```powershell
 gh pr checks --watch
 gh pr merge --merge --delete-branch
 git switch main
@@ -158,7 +158,7 @@ Vercel のプロジェクト → **Settings** → **Environment Variables**
 
 確かめるために、小さな PR を作る。
 
-```bash
+```powershell
 git switch -c docs/vercel-url
 ```
 
@@ -170,7 +170,7 @@ README に公開 URL を書き足す。
 - 本番（Vercel）：https://todo-app-ユーザー名.vercel.app
 ```
 
-```bash
+```powershell
 git commit -am "docs: 公開URLをREADMEに追加"
 git push -u origin docs/vercel-url
 gh pr create --fill
@@ -226,7 +226,7 @@ gh pr create --fill
 
 Vercel はコマンドラインからも操作できる。
 
-```bash
+```powershell
 npm install -g vercel
 vercel login
 vercel link
@@ -251,7 +251,7 @@ Vercel のプロジェクトの **Analytics** タブで Web Analytics を有効�
 <details>
 <summary>ヒント</summary>
 
-```bash
+```powershell
 npm install @vercel/analytics
 ```
 

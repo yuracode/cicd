@@ -36,7 +36,7 @@ PR を出すと、次の2つが **自動で** チェックされるようにす�
 
 CI で実行するコマンドは、**まず手元で通ることを確認する**。
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -106,7 +106,7 @@ CI では「毎回まったく同じバージョンのパッケージで」確�
 
 ### 4. push して PR を作る
 
-```bash
+```powershell
 git add .github/workflows/ci.yml
 git commit -m "ci: lintとbuildを実行するCIを追加"
 git push -u origin ci/lint-build
@@ -115,7 +115,7 @@ gh pr create --fill
 
 PR の画面を開く。
 
-```bash
+```powershell
 gh pr view --web
 ```
 
@@ -123,13 +123,13 @@ PR の下のほうに **チェックの一覧**（`CI / lint-build`）が表示�
 
 ターミナルでも確認できる。
 
-```bash
+```powershell
 gh pr checks --watch
 ```
 
 すべて緑になったらマージする。
 
-```bash
+```powershell
 gh pr merge --merge --delete-branch
 git switch main
 git pull
@@ -141,7 +141,7 @@ git pull
 
 CI が本当に役に立つか、わざと壊して確かめる。
 
-```bash
+```powershell
 git switch -c test/break-lint
 ```
 
@@ -154,7 +154,7 @@ if (todos.length > 100) {
 }
 ```
 
-```bash
+```powershell
 npm run lint
 ```
 
@@ -165,7 +165,7 @@ npm run lint
 
 **手元で気づいたが、あえてそのまま** push して PR を作る。
 
-```bash
+```powershell
 git commit -am "test: わざとlintエラーを入れる"
 git push -u origin test/break-lint
 gh pr create --fill
@@ -182,7 +182,7 @@ gh pr checks --watch
 
 lint のエラーを消して、今度は別の壊し方をする。`components/Header.js` の先頭の `'use client'` を消す。
 
-```bash
+```powershell
 npm run lint    # 通ってしまう
 npm run build   # 失敗する
 ```
@@ -194,7 +194,7 @@ This API is only available in Client Components.
 
 **ESLint では見つからないが、ビルドでは見つかる間違い** がある。だから CI では lint と build の両方を実行する。
 
-```bash
+```powershell
 git commit -am "test: わざとbuildエラーを入れる"
 git push
 gh pr checks --watch
@@ -206,7 +206,7 @@ gh pr checks --watch
 
 `'use client'` を戻し、`TodoApp.js` に入れた `if` も消す。
 
-```bash
+```powershell
 npm run lint
 npm run build
 git commit -am "fix: わざと入れたエラーを直す"
@@ -216,7 +216,7 @@ gh pr checks --watch
 
 緑になったことを確かめたら、この PR はマージせずに閉じる（練習用なので）。
 
-```bash
+```powershell
 gh pr close --delete-branch
 git switch main
 ```
@@ -229,11 +229,11 @@ git switch main
 
 ESLint には **エラー（error）** と **警告（warning）** がある。今の設定では、警告があっても `npm run lint` は成功してしまう。
 
-`app/about/page.js` に `<img src="/next.svg" alt="logo" />` を追加して `npm run lint` を実行し、警告が出ても終了コードが 0 であることを確かめる（`echo $?`）。
+`app/about/page.js` に `<img src="/next.svg" alt="logo" />` を追加して `npm run lint` を実行し、警告が出ても終了コードが 0 であることを確かめる（`$LASTEXITCODE`）。
 
 次に `package.json` の `lint` を `"eslint --max-warnings=0"` に変え、もう一度実行する。
 
-**確認方法**：`--max-warnings=0` を付けると `echo $?` が `1` になり、`<img>` を消す（または `next/image` の `<Image>` に変える）と `0` に戻ればOK。変更をコミットして PR を作り、CI が緑になることも確かめる。
+**確認方法**：`--max-warnings=0` を付けると `$LASTEXITCODE` が `1` になり、`<img>` を消す（または `next/image` の `<Image>` に変える）と `0` に戻ればOK。変更をコミットして PR を作り、CI が緑になることも確かめる。
 
 <details>
 <summary>解説</summary>
@@ -279,7 +279,7 @@ Module not found: Can't resolve '@/components/TodoAppClinet'
 
 コードの見た目（クォート・セミコロン・インデント）を自動でそろえる **Prettier** を入れ、CI でも書式がそろっているかをチェックする。
 
-```bash
+```powershell
 npm install -D prettier
 ```
 
@@ -292,7 +292,7 @@ npm install -D prettier
 }
 ```
 
-```bash
+```powershell
 npm pkg set scripts.format="prettier --write ." scripts.format:check="prettier --check ."
 npm run format:check
 ```
@@ -363,5 +363,5 @@ concurrency:
 
 ### チャレンジ課題（挑戦）
 
-5. `.nvmrc` に `24` と書いてコミットし、`setup-node` の `node-version: 24` を `node-version-file: .nvmrc` に変える。手元の `nvm use` と CI が同じファイルを見るようになる利点を説明する
+5. `.nvmrc` に `24` と書いてコミットし、`setup-node` の `node-version: 24` を `node-version-file: .nvmrc` に変える。手元と CI のバージョンを1つのファイルで管理できる利点を説明する（手元を nvm-windows や fnm で管理している人は `.nvmrc` を読ませられる）
 6. README の一番上に CI のステータスバッジを表示する（Actions タブ → ワークフロー → 右上の `…` → Create status badge）。CI が失敗するとバッジが赤くなることを確かめる

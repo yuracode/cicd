@@ -173,14 +173,14 @@ jobs:
 
 手元で YAML を JSON に変換して確かめられる。
 
-```bash
-mkdir -p ~/workspace/yaml-practice
+```powershell
+mkdir -Force ~/workspace/yaml-practice
 cd ~/workspace/yaml-practice
 ```
 
 上の YAML を `sample.yml` として保存し、変換する。
 
-```bash
+```powershell
 npx --yes js-yaml sample.yml
 ```
 

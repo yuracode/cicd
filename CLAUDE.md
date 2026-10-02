@@ -57,23 +57,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **文体**：専門学校1〜2年生向け。丁寧すぎず砕けすぎない。専門用語は初出時に一言説明を添える
 - **初歩から**：Phase 1 は「React/Nextを少し触ったことがある人の学び直し」も兼ねる。ターミナル操作やJSの文法（分割代入・アロー関数・map など）も、使う場面で一言おさらいする
-- **コードブロック言語**：シェルは `bash`、React/Next のコードは `jsx`、GitHub Actionsは `yaml`
+- **コードブロック言語**：シェルは `powershell`（ワークフロー内の `run:` は ubuntu ランナーなので bash のまま）、React/Next のコードは `jsx`、GitHub Actionsは `yaml`
 - **ファイル拡張子**：`create-next-app --js` の生成物に合わせて `.js`（`page.js`, `layout.js`, `components/Counter.js`, `Counter.test.js`）
-- **開発サーバは `npm run dev`**（オプション不要。`next dev` は全インターフェースで待ち受けるので WSL2 から Windows 側ブラウザで `http://localhost:3000` が開ける）。`-- --host` は Next にないので書かない
+- **開発サーバは `npm run dev`**（オプション不要）。`-- --host` は Next にないので書かない
 - プロジェクト作成コマンドは次で統一（JS・ESLint・App Router・Tailwindなし・srcなし）：
-  ```bash
+  ```powershell
   npx create-next-app@latest <プロジェクト名> --js --eslint --app --no-tailwind --no-src-dir --no-react-compiler --import-alias "@/*" --use-npm --yes
   ```
 - 自作コンポーネントは `components/` に置き、`@/components/...` で import する
-- 学習者の環境は Windows + WSL2 Ubuntu（プロジェクトは `~/workspace/` 配下。`/mnt/c` には置かない）、Node.js 24（nvm）、Next.js 16 + React 19
+- 学習者の環境は Windows の PowerShell（5.1 でも動く書き方にする）、Node.js 24 LTS（`winget install OpenJS.NodeJS.LTS`）、Git for Windows、Next.js 16 + React 19。プロジェクトは `~/workspace/`（OneDrive 同期外）。コマ1で `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`・`core.autocrlf false`・VS Code の `files.eol` を LF にする
+- PowerShell の書き方：`mkdir -Force a, b` / `Remove-Item -Recurse -Force` / `$env:X = "v"; cmd; Remove-Item Env:X` / `$LASTEXITCODE` / `$env:TEMP`（`/tmp` は使わない）/ 複数行は ヒア文字列 `@' '@`。`echo > file` は 5.1 で UTF-16 になるので、設定ファイルは「VS Code で書く」＋ ```text ブロック
+- npm scripts で環境変数を付けるときは `cross-env`（Windows の npm scripts は cmd.exe で動く）
 - 教える技術スタック：Next.js 16（App Router, Turbopack）/ React 19 / Jest（`next/jest`）+ React Testing Library / ESLint（`npm run lint` = `eslint`。`next lint` は廃止済み）/ GitHub Actions / Vercel + GitHub Pages（静的書き出し）
 - **Vite・Vitest は使わない**
 - テストの定番構成（Phase 2 以降の前提）：
-  ```bash
+  ```powershell
   npm install -D jest jest-environment-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom @testing-library/user-event
   ```
   `jest.config.mjs` は `next/jest.js` の `createJestConfig` に `testEnvironment: 'jsdom'`、`setupFilesAfterEnv: ['<rootDir>/jest.setup.js']`、`moduleNameMapper: { '^@/(.*)$': '<rootDir>/$1' }` を渡す（`jest.mock('@/...')` の解決に moduleNameMapper が必須）。`jest.setup.js` は `import '@testing-library/jest-dom'` の1行。scripts は `"test": "jest"`, `"test:watch": "jest --watch"`, `"test:coverage": "jest --coverage"`（コマ13で `collectCoverageFrom` と `coverageThreshold` を追加し、`eslint.config.mjs` の globalIgnores に `coverage/**` を足す）
-- MSW を Jest で使うときは `testEnvironment: 'jest-fixed-jsdom'`（jsdom に fetch/Request がないため）と、scripts の `NODE_OPTIONS=--experimental-vm-modules`（MSW の依存に ESM 専用パッケージがあるため）が必須。`MswProvider` は StrictMode の二重実行対策で起動 Promise をモジュール変数で1つにまとめる
+- MSW を Jest で使うときは `testEnvironment: 'jest-fixed-jsdom'`（jsdom に fetch/Request がないため）と、scripts の `cross-env NODE_OPTIONS=--experimental-vm-modules`（MSW の依存に ESM 専用パッケージがあるため。Windows の npm scripts は cmd.exe で動くので `cross-env` 経由）が必須。`MswProvider` は StrictMode の二重実行対策で起動 Promise をモジュール変数で1つにまとめる
 - Next特有のテスト上の注意：`async` な Server Component は `render(<Page />)` では描画できない（`render(await Page())` なら単純なものは可。基本はデータ取得を関数に切り出して単体テスト、画面はE2E）。`next/navigation` は `jest.mock` する
 - localStorage を読む部品は `dynamic(() => import(...), { ssr: false })` のラッパー（`TodoAppClient.js`）経由で読み込む。`useEffect` 内で同期的に setState すると `react-hooks/set-state-in-effect` が **error** になるので、読み込みは `useState(loadTodos)` の遅延初期化で行う
 - 本編の TODO アプリの到達形（コマ5〜23）：`components/` に TodoApp / TodoAppClient / TodoForm / TodoList / TodoItem / Header / SampleLoader、`lib/` に todos.js（純粋関数）/ api.js（fetch）/ tips.js、`app/` に page / layout / about / tips（async Server Component）/ not-found、`lib/` に config.js（環境変数）/ nav.js（`isCurrentPath`：Pages の trailingSlash 対策）、`components/Footer.js`。`.github/workflows/ci.yml` は lint・test → build → pages-build → pages-deploy の1本

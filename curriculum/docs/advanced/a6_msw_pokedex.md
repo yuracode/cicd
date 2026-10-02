@@ -68,14 +68,14 @@
 
 ### 1. プロジェクトを作り、完成形を把握する
 
-```bash
+```powershell
 cd ~/workspace
 npx create-next-app@latest pokedex --js --eslint --app --no-tailwind --no-src-dir --no-react-compiler --import-alias "@/*" --use-npm --yes
 cd pokedex
 rm app/page.module.css
-mkdir -p components lib mocks/fixtures
+mkdir -Force components, lib, mocks/fixtures
 
-npm install -D jest jest-fixed-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom @testing-library/user-event msw prettier
+npm install -D jest jest-fixed-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom @testing-library/user-event msw prettier cross-env
 npx msw init public --save
 ```
 
@@ -153,8 +153,8 @@ export const worker = setupWorker(...handlers)
 
 `package.json` のコマンドを設定する。`npm run dev` は **最初からモックを有効にして** 起動するようにし、本物の API で確かめたいときだけ `npm run dev:real` を使う。
 
-```bash
-npm pkg set scripts.dev="NEXT_PUBLIC_API_MOCKING=enabled next dev" scripts.dev:real="next dev" scripts.lint="eslint --max-warnings=0" scripts.test="NODE_OPTIONS=--experimental-vm-modules jest" scripts.test:watch="NODE_OPTIONS=--experimental-vm-modules jest --watch" scripts.format="prettier --write ." scripts.format:check="prettier --check ."
+```powershell
+npm pkg set scripts.dev="cross-env NEXT_PUBLIC_API_MOCKING=enabled next dev" scripts.dev:real="next dev" scripts.lint="eslint --max-warnings=0" scripts.test="cross-env NODE_OPTIONS=--experimental-vm-modules jest" scripts.test:watch="cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch" scripts.format="prettier --write ." scripts.format:check="prettier --check ."
 ```
 
 `eslint.config.mjs` の `globalIgnores` に `"public/mockServiceWorker.js"` を足し、`.prettierrc`・`.prettierignore` を `todo-app` と同じように用意する（`.prettierignore` には `public/mockServiceWorker.js` も書く）。
@@ -846,7 +846,7 @@ export default function Home() {
 }
 ```
 
-```bash
+```powershell
 npm run dev
 ```
 
@@ -939,7 +939,7 @@ describe('ポケモン図鑑', () => {
 - 成功・404 のテストには **モックのコードがない**。フィクスチャとハンドラが、そのまま「仕様書」になっている
 - 500 と読み込み中のテストだけ、`server.use` でその場で応答を上書きしている
 
-```bash
+```powershell
 npm test
 npm run lint
 npm run build
@@ -958,13 +958,13 @@ PASS components/Pokedex.test.js
 
 最後に、**本物の PokeAPI でも同じように動く** ことを1〜2回だけ確かめる（フェアユース）。
 
-```bash
+```powershell
 npm run dev:real
 ```
 
 コードを1行も変えずに本物につながるのは、**フィクスチャとハンドラを本物の形にそっくり合わせた** から。
 
-```bash
+```powershell
 git add .
 git commit -m "feat: MSWで偽装したPokeAPIでポケモン図鑑を作る"
 gh repo create pokedex --public --source=. --remote=origin --push

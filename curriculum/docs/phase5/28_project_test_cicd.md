@@ -45,7 +45,7 @@
 
 ### 1. 今のカバレッジを測る
 
-```bash
+```powershell
 cd ~/workspace/pomodoro
 git switch main
 git pull
@@ -55,8 +55,8 @@ npm run test:coverage
 
 表を見て、**0% や低いファイル** と、**`Uncovered Line #s`** を確かめる（コマ13）。HTML レポートも開く。
 
-```bash
-explorer.exe coverage/lcov-report/index.html
+```powershell
+start coverage/lcov-report/index.html
 ```
 
 ### 2. タイマーのテスト：偽物の時計を使う
@@ -114,7 +114,7 @@ test('25分たつと休憩になり、完了回数が増える', async () => {
 
 > **自分のアプリにタイマーがない場合**：ボタンを押してから数秒後に何かが起きる処理（`setTimeout` でメッセージを消すなど）があれば同じ方法でテストできる。なければ、この節は読むだけでよい。
 
-```bash
+```powershell
 npm test
 ```
 
@@ -171,7 +171,7 @@ test('作業 → 休憩 → 作業と1周する', async () => {
 
 数字は **今のカバレッジを見て決める**。`lib/` を 100% にするのは、ロジックはテストしやすく、しかも一番大事だから。
 
-```bash
+```powershell
 npm run test:coverage
 npm run lint
 npm run build
@@ -185,11 +185,11 @@ gh pr merge --merge --delete-branch
 
 ### 5. CI/CD の最終チェック
 
-```bash
+```powershell
 git switch main
 git pull
 gh run list --limit 5
-gh api repos/{owner}/{repo}/rulesets --jq '.[].name'
+gh api "repos/{owner}/{repo}/rulesets" --jq '.[].name'
 ```
 
 次を1つずつ確かめる。
@@ -238,7 +238,7 @@ README は、**このリポジトリを初めて見た人が、何のアプリ�
 
 ## 開発
 
-```bash
+```powershell
 npm install
 npm run dev          # http://localhost:3000
 npm test             # テスト
@@ -262,16 +262,16 @@ PR → Vercel のプレビュー、main → Vercel の本番
 
 スクリーンショットは、Windows の `Win + Shift + S` で撮り、`docs/screenshot.png` として保存する。
 
-```bash
-mkdir -p docs
-cp /mnt/c/Users/<Windowsのユーザー名>/Pictures/Screenshots/<ファイル名>.png docs/screenshot.png
+```powershell
+mkdir -Force docs
+Copy-Item ~/Pictures/Screenshots/<ファイル名>.png docs/screenshot.png
 ```
 
 PR でマージする。
 
 ### 7. v1.0.0 としてリリースする
 
-```bash
+```powershell
 git switch main
 git pull
 gh release create v1.0.0 --generate-notes --title "v1.0.0 最初の完成版"

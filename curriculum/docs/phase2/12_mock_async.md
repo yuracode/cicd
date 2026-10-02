@@ -17,7 +17,7 @@
 
 ### 前回の振り返り
 
-```bash
+```powershell
 cd ~/workspace/todo-app
 git switch main
 git pull
@@ -54,7 +54,7 @@ function clearAll() {
 }
 ```
 
-```bash
+```powershell
 git switch -c test/mocks
 ```
 
@@ -149,7 +149,7 @@ test('/ にいるときは「TODO」が現在のページになる', () => {
 - `usePathname: jest.fn()`：中身は「記録係の関数」にしておき、テストごとに `mockReturnValue` で返す値を決める
 - **`aria-current`** で確かめているのは、クラス名（`active`）より **利用者にとっての意味** に近いから
 
-```bash
+```powershell
 npm test
 git add .
 git commit -m "test: 確認ダイアログとHeaderのテストをモックで追加"
@@ -241,7 +241,7 @@ test('サーバがエラーを返したら例外を投げる', async () => {
 
 偽物のレスポンスには、**関数が実際に使う部分（`ok`、`status`、`json`）だけ** 用意すればよい。
 
-```bash
+```powershell
 npm test
 git add .
 git commit -m "feat: サンプルTODOを取得する fetchSampleTodos を追加"
@@ -342,7 +342,7 @@ test('読み込みに失敗したらエラーメッセージを表示する', as
 
 > `jest.mock('@/lib/api')` の `@/` が解決できるのは、`jest.config.mjs` に `moduleNameMapper` を書いてあるから。これがないと `Cannot find module '@/lib/api'` になる。
 
-```bash
+```powershell
 npm test
 git add .
 git commit -m "feat: サンプル読み込みボタンを追加（テスト付き）"

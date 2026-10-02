@@ -75,11 +75,11 @@
 
 発表で一番伝わるのは、**実際に起きたこと**。自分のリポジトリの履歴から探す。
 
-```bash
+```powershell
 cd ~/workspace/<自分のアプリ>
 gh run list --status failure --limit 10
 gh pr list --state merged --limit 20
-git log --oneline | head -30
+git log --oneline -30
 ```
 
 - CI が赤くなった実行を開き、**何が原因で、どう直したか** を思い出す
