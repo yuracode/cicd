@@ -175,7 +175,7 @@ start $env:TEMP/coverage-report/lcov-report/index.html
 
 `<実行のID>` は `gh run list` の一番右の数字。手元で `npm run test:coverage` したときと同じレポートが見られる。
 
-> **`wslpath -w`**：WSL（Linux）のパスを、Windows から開けるパス（`\\wsl.localhost\Ubuntu\tmp\...`）に変換するコマンド。
+> **`$env:TEMP`**：Windows の一時フォルダ（`C:\Users\ユーザー名\AppData\Local\Temp`）。`start ファイル名` で、そのファイルを既定のアプリ（ここではブラウザ）で開ける。
 
 確認できたら PR をマージする。
 

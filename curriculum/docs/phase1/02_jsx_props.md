@@ -29,7 +29,7 @@ npm run dev
 > 前回のプロジェクトがない人は、次で作り直せる。
 >
 > ```bash
-> mkdir -p ~/workspace && cd ~/workspace
+> mkdir -Force ~/workspace; cd ~/workspace
 > npx create-next-app@latest hello-next --js --eslint --app --no-tailwind --no-src-dir --no-react-compiler --import-alias "@/*" --use-npm --yes
 > cd hello-next
 > npm run dev
