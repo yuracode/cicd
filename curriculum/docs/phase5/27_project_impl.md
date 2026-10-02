@@ -136,7 +136,7 @@ export function tick(timer) {
 > **なぜ `remaining > 1` なの？** 残り1秒のときに `tick` すると、0:00 を表示せずにそのまま次のモードの最初（5:00 など）に切り替える。0:00 を一瞬見せたいかどうかは **仕様の決め事**。決めたことはテストに書いておくと、あとで迷わない。
 
 ```powershell
-npm run lint && npm test && npm run build
+npm run lint; npm test; npm run build   # 3つとも成功（赤いエラーが出ない）のを確かめてから次へ
 git add .
 git commit -m "feat: タイマーの状態を進める tick を追加"
 git push -u origin feature/pomodoro-logic
@@ -231,7 +231,7 @@ export default function Timer() {
 ブラウザで、スタート → 数秒待つ → 一時停止 → 止まる、を確かめる。
 
 ```powershell
-npm run lint && npm test && npm run build
+npm run lint; npm test; npm run build
 git add .
 git commit -m "feat: カウントダウンとスタート・一時停止"
 git push -u origin feature/countdown
@@ -294,7 +294,7 @@ export default function Timer() {
 動作確認：25分待つのは大変なので、**確認するときだけ** `lib/pomodoro.js` の `DURATIONS.work` を `5`（5秒）に変える。確認したら必ず戻す（テストが教えてくれる）。
 
 ```powershell
-npm run lint && npm test && npm run build
+npm run lint; npm test; npm run build
 git add .
 git commit -m "feat: リセットと休憩への自動切り替え、完了回数の表示"
 git push -u origin feature/mode-switch
