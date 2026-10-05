@@ -234,7 +234,7 @@ export default function AboutPage() {
   return (
     <main className="container">
       <h1>このアプリについて</h1>
-      <p>「技術研究」の授業で作っている TODO アプリです。</p>
+      <p>「Webフロントエンド」の授業で作っている TODO アプリです。</p>
       <ul>
         <li>Next.js（App Router）</li>
         <li>データはブラウザの localStorage に保存</li>

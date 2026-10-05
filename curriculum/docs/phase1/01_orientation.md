@@ -9,7 +9,7 @@
 
 ##  目標
 
-- 「技術研究」全30コマのゴールと、毎回の進め方を説明できる
+- 「Webフロントエンド」全30コマのゴールと、毎回の進め方を説明できる
 - Windows の PowerShell で Node.js 24 と Git をセットアップできる
 - `create-next-app` で Next.js プロジェクトを作り、`npm run dev` でブラウザに表示できる
 
