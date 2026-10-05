@@ -24,3 +24,6 @@ claude.md
 Thumbs.db
 *.swp
 *.swo
+
+# マクロ付きPowerPoint（マクロは再配布不可のため管理しない）
+*.pptm
