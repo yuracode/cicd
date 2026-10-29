@@ -227,7 +227,7 @@ git switch main
 
 ### 演習1（基本）：警告も失敗にする
 
-ESLint には **エラー（error）** と **警告（warning）** がある。今の設定では、警告があっても `npm run lint` は成功してしまう。
+コマ13 で見たように、ESLint の指摘には **エラー（error）** と **警告（warning）** があり、警告だけなら `npm run lint` は成功してしまう。
 
 `app/about/page.js` に `<img src="/next.svg" alt="logo" />` を追加して `npm run lint` を実行し、警告が出ても終了コードが 0 であることを確かめる（`$LASTEXITCODE`）。
 

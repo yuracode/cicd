@@ -126,13 +126,40 @@ start coverage/lcov-report/index.html
 
 ### 3. ESLint がレポートを検査しないようにする
 
-この状態で `npm run lint` を実行すると、`coverage/` の中の JavaScript まで検査して警告が出る。
+`npm run lint` は、`package.json` の `scripts` にある `lint` を実行するコマンド。`create-next-app` が最初から用意している。
+
+```powershell
+npm pkg get scripts.lint
+# "eslint"
+```
+
+中身は **ESLint**。ESLint はコードを実行せずに読んで、「動くけれどバグの元になりそうな書き方」を指摘してくれる。たとえば次のようなものを見つける。
+
+- 使っていない変数
+- React Hooks の使い方の誤り
+- `<img>` を `next/image` にしていない
+
+| | テスト（`npm test`） | lint（`npm run lint`） |
+|---|---|---|
+| 確かめること | 動きが正しいか | 書き方に問題がないか |
+| コードを実行するか | する | しない |
+
+指摘は2種類ある。
+
+- **error**：直すべき問題。1つでもあると失敗扱い（終了コード `1`）になる
+- **warning**：注意。警告だけなら成功扱い（終了コード `0`）のまま
+
+ルールは `eslint.config.mjs` に書かれている。その中の `globalIgnores` に書いたフォルダは、検査の対象から外れる。
+
+カバレッジを測った今の状態で `npm run lint` を実行すると、`coverage/` の中の JavaScript まで検査して警告が出る。
 
 ```powershell
 npm run lint
 # coverage/lcov-report/prettify.js
 #   1:1  warning  Unused eslint-disable directive ...
 ```
+
+警告だけなので今は成功扱いだが、放っておかない。関係ないファイルの警告が混ざると、本当に直すべき警告が埋もれてしまう。また、コマ16 では「警告が1つでもあれば失敗」にする設定（`--max-warnings=0`）を試すので、そのとき `coverage/` の警告が原因で lint が落ちてしまう。
 
 `eslint.config.mjs` の `globalIgnores` に1行追加する。
 
