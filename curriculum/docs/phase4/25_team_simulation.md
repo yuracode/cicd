@@ -178,7 +178,8 @@ gh pr view <PR番号> --web
 3. もう一度レビューを依頼する（**Dismiss stale approvals** により、前の承認は取り消されている）
 
 ```powershell
-git commit -am "fix: 期限が空のときは表示しない"
+git add .
+git commit -m "fix: 期限が空のときは表示しない"
 git push
 gh pr edit --add-reviewer <レビューしてくれた人のユーザー名>
 ```

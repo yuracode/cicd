@@ -118,7 +118,8 @@ git switch -c feature/header-color
 ```
 
 ```powershell
-git commit -am "style: ヘッダーの色を紺にする"
+git add .
+git commit -m "style: ヘッダーの色を紺にする"
 git push -u origin feature/header-color
 gh pr create --fill
 gh pr view --web
@@ -171,7 +172,8 @@ README に公開 URL を書き足す。
 ```
 
 ```powershell
-git commit -am "docs: 公開URLをREADMEに追加"
+git add .
+git commit -m "docs: 公開URLをREADMEに追加"
 git push -u origin docs/vercel-url
 gh pr create --fill
 ```

@@ -202,7 +202,8 @@ export function countRemaining(todos) {
 **手元でテストを実行せずに** push する（CI が見つけてくれるかを確かめるため）。
 
 ```powershell
-git commit -am "test: わざとバグを入れる"
+git add .
+git commit -m "test: わざとバグを入れる"
 git push -u origin test/break-test
 gh pr create --fill
 gh pr checks --watch
@@ -229,7 +230,8 @@ FAIL lib/todos.test.js
 `!` を戻して push し、緑になったら PR は閉じる。
 
 ```powershell
-git commit -am "fix: countRemaining を元に戻す"
+git add .
+git commit -m "fix: countRemaining を元に戻す"
 git push
 gh pr checks --watch
 gh pr close --delete-branch

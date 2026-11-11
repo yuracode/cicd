@@ -71,7 +71,8 @@ gh run view <実行のID> --log-failed   # 失敗したステップのログだ�
 ```
 
 ```powershell
-git commit -am "practice: 事件1"
+git add .
+git commit -m "practice: 事件1"
 git push -u origin practice/debug
 gh pr create --title "練習：トラブルシューティング" --body "練習用。マージしない。"
 ```
@@ -99,7 +100,8 @@ gh pr create --title "練習：トラブルシューティング" --body "練習
 ```
 
 ```powershell
-git commit -am "practice: 事件2"
+git add .
+git commit -m "practice: 事件2"
 git push
 ```
 
@@ -122,7 +124,8 @@ or npm-shrinkwrap.json are in sync. Please update your lock file with `npm insta
 
 ```powershell
 npm ci
-git commit -am "practice: 事件2を直す"
+git add .
+git commit -m "practice: 事件2を直す"
 git push
 ```
 
@@ -193,7 +196,8 @@ test('朝8時は「おはようございます」', () => {
 $env:TZ = "UTC"; npm test
 $env:TZ = "Asia/Tokyo"; npm test
 Remove-Item Env:TZ   # 後片付け（このターミナルの間ずっと残るため）
-git commit -am "practice: 事件3を直す（タイムゾーンに依存しないテストにする）"
+git add .
+git commit -m "practice: 事件3を直す（タイムゾーンに依存しないテストにする）"
 git push
 ```
 

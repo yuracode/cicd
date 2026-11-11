@@ -39,58 +39,102 @@ GitHub の **ルールセット** で、`main` に次のルールを付ける。
 
 ### 1. ルールセットとは
 
-**ルールセット（Rulesets）** は、ブランチに「守るべきルール」を付ける GitHub の機能。以前は「ブランチ保護ルール（Branch protection rules）」という機能が使われていて、今も両方あるが、この授業ではより新しいルールセットを使う。
+**ルールセット（Rulesets）** は、ブランチに「守るべきルール」を付ける GitHub の機能。ルールを破る操作（直接 push、CI が赤いままのマージなど）を、GitHub 側が **受け付けずに拒否** してくれる。
 
-| ルール | 効果 |
-|--------|------|
-| Restrict deletions | ブランチを削除できない |
-| Block force pushes | `git push --force` で履歴を書き換えられない |
-| Require a pull request before merging | PR を通さないと変更できない（直接 push 禁止） |
-| Require status checks to pass | 指定したチェック（CI のジョブ）が成功しないとマージできない |
+以前は「ブランチ保護ルール（Branch protection rules）」という機能が使われていて、今も両方ある。ルールセットはその後継で、次のような点が改良されている。この授業ではルールセットを使う。
+
+- 1つのルールセットを複数のブランチにまとめて当てられる
+- 「有効／無効」を切り替えられ、一時的に止めたいときに消さずに済む
+- JSON で書き出して、別のリポジトリにコピーできる（演習4）
+
+今日使うルールは次の4つ。
+
+| ルール | 効果 | 防げる事故の例 |
+|--------|------|----------------|
+| Restrict deletions | ブランチを削除できない | 間違えて `main` ブランチごと消してしまう |
+| Block force pushes | `git push --force` で履歴を書き換えられない | 手元の古い履歴で上書きして、他の人のコミットが消える |
+| Require a pull request before merging | PR を通さないと変更できない（直接 push 禁止） | レビューも CI も通っていないコードが `main` に入る |
+| Require status checks to pass | 指定したチェック（CI のジョブ）が成功しないとマージできない | テストが落ちているのに「あとで直す」と言ってマージする |
+
+> **ステータスチェック（status check）**：PR の画面の下に並ぶ「✓」「✗」の1つ1つのこと。GitHub Actions のワークフローでは、**ジョブ1つが1つのチェック** になる。コマ17の `ci.yml` には `lint` / `test` / `build` の3つのジョブがあるので、チェックも3つ並ぶ。
 
 > 公開リポジトリなら無料で使える。非公開リポジトリの場合はプランによって使えないことがある（Phase 4 で公開するので、`todo-app` は公開リポジトリにしてある）。
 
 ### 2. ルールセットを作る
+
+ルールセットはコマンドではなく、GitHub の Web 画面で作る。まずリポジトリのページをブラウザで開く。
 
 ```powershell
 cd ~/workspace/todo-app
 gh repo view --web
 ```
 
-1. **Settings** → 左のメニューの **Rules** → **Rulesets**
+`gh repo view --web` は、今いるフォルダの GitHub リポジトリをブラウザで開くコマンド。開いたら、次の順に進む。
+
+1. 上のタブの **Settings** → 左のメニューの **Rules** → **Rulesets**
+   - Settings タブが見えないときは、自分のリポジトリを開いているか確認する（他人のリポジトリでは設定を変えられない）
 2. **New ruleset** → **New branch ruleset**
-3. 次のように設定する
+   - 「branch ruleset」はブランチ向け、「tag ruleset」はタグ（`v1.0.0` などのバージョンの目印）向け。今回はブランチを守るので branch を選ぶ
+3. 画面の上半分で、ルールセット全体の設定をする
 
-| 項目 | 設定 |
-|------|------|
-| Ruleset Name | `protect-main` |
-| Enforcement status | **Active** |
-| Bypass list | 何も追加しない（自分も含めて全員がルールに従う） |
-| Target branches | **Add target** → **Include default branch** |
+| 項目 | 設定 | 意味と理由 |
+|------|------|------------|
+| Ruleset Name | `protect-main` | ルールセットの名前。あとで一覧で見分けるためのものなので、何を守るのかがわかる名前にする |
+| Enforcement status | **Active** | ルールを実際に効かせるかどうか。**Disabled** にすると、設定は残したままルールが止まる。作っただけで効いていない、ということがないよう Active を選ぶ |
+| Bypass list | 何も追加しない | ここに入れた人（管理者など）はルールを無視できる。リポジトリの持ち主である自分も含めて **全員がルールに従う** ように、空のままにする |
+| Target branches | **Add target** → **Include default branch** | どのブランチを守るか。**default branch（デフォルトブランチ）** は、リポジトリの基準になるブランチのことで、今は `main`。「`main` という名前を直接書く」代わりに「デフォルトブランチ」を指定しておくと、あとで名前を変えても守られ続ける |
 
-4. **Branch rules** で次にチェックを入れる
+> Target branches を設定したら、その下に **Applies to 1 target: main** のように表示されるのを確認する。ここが空のままだと、ルールを作っても **どのブランチにも効かない**。
+
+4. 画面の下半分の **Branch rules** で、どんなルールを付けるかを選ぶ
+
+ずらっと十数個のルールが並ぶが、チェックを入れるのは次の4つだけ。それ以外（Restrict creations、Require signed commits など）はチェックを外したままでよい。
 
 - ☑ **Restrict deletions**
 - ☑ **Require a pull request before merging**
-  - Required approvals：**0**（今は1人で開発しているため。チームでは1以上にする）
+  - Required approvals：**0**
 - ☑ **Require status checks to pass**
   - ☑ Require branches to be up to date before merging
   - **Add checks** → `lint`、`test`、`build` を検索して3つとも追加する
 - ☑ **Block force pushes**
 
-5. 一番下の **Create** を押す
+それぞれの設定の意味を、上から順に確認しておく。
 
-> **Add checks で `lint` などが出てこない**：そのジョブ名のチェックが、このリポジトリで一度も実行されていない。コマ17の `ci.yml` で PR を1回動かしてから、もう一度探す。
->
-> **Required approvals を 0 にする理由**：GitHub では **自分の PR を自分で承認（Approve）できない**。1人で開発中に 1 にすると、誰もマージできなくなる。コマ25のチーム開発では 1 にする。
+**Restrict deletions／Block force pushes**
+
+新しいルールセットを作ると、この2つは最初からチェックが入っていることが多い。外れていたら入れる。どちらも「`main` の履歴を壊す操作」を禁止するもので、`main` には必ず付けておくのが一般的。
+
+**Require a pull request before merging**
+
+チェックを入れると、その下に詳しい設定が開く。
+
+- **Required approvals**（必要な承認の数）は **0** にする。PR では、他の人がコードを読んで「OK」を出すこと（**承認、Approve**）をマージの条件にできるが、GitHub では **自分の PR を自分で承認することはできない**。1人で開発している今これを 1 にすると、承認してくれる人がいないので **誰もマージできなくなる**。0 でも「PR を通さないと `main` を変えられない」という効果はちゃんと残る。コマ25のチーム開発では 1 以上にする
+- そのほかの項目（Dismiss stale pull request approvals… など）は、レビューする人がいるときのための設定。今は初期値のままでよい
+
+**Require status checks to pass**
+
+チェックを入れると、「どのチェックが成功していればマージしてよいか」を選ぶ欄が開く。
+
+- **Require branches to be up to date before merging** にもチェックを入れる。「PR ブランチに最新の `main` が取り込まれていること」もマージの条件にするオプションで、なぜ必要かは本題5で体験する
+- **Add checks** を押すと検索欄が出るので、`lint` と入力し、候補に出てきた `lint` を選ぶ。同じように `test`、`build` も追加し、**3つとも一覧に並んだ** ことを確認する
+  - ここに出てくる名前は、`ci.yml` の `jobs:` の下に書いた **ジョブの名前**（`lint:` / `test:` / `build:`）。だから CI 側でジョブ名を変えたら、ここも直す必要がある（演習3）
+  - 候補の横に GitHub Actions のアイコンが付いていれば、そのチェックが Actions から報告されていることを表す
+  - 1つも追加しないと、「チェックが成功していること」を何も要求していないのと同じになるので注意
+
+5. 一番下の **Create** を押す。Rulesets の一覧に `protect-main` が表示され、横に **Active** と出ていれば完成
+
+> **Add checks で `lint` などが出てこない**：GitHub は「このリポジトリで実際に実行されたことのあるチェック」しか候補に出さない。コマ17の `ci.yml` で PR を1回動かしてから、もう一度探す。
 
 ### 3. main に直接 push してみる
+
+ルールが本当に効いているかを、わざとルールを破って確かめる。今までなら成功していた「`main` で直接コミットして push」をやってみる。
 
 ```powershell
 git switch main
 git pull
 code README.md   # 末尾に1行足して保存する
-git commit -am "docs: mainに直接pushしてみる"
+git add .
+git commit -m "docs: mainに直接pushしてみる"
 git push
 ```
 
@@ -101,9 +145,18 @@ remote: - 3 of 3 required status checks are expected.
  ! [remote rejected] main -> main (push declined due to repository rule violations)
 ```
 
-**拒否された**。`main` を変えるには PR を通すしかない。
+**拒否された**。エラーメッセージは次のように読む。
 
-手元の `main` に作ってしまったコミットは、取り消しておく。
+| 行 | 意味 |
+|----|------|
+| `GH013: Repository rule violations found for refs/heads/main` | `main` ブランチ（`refs/heads/main` は Git 内部でのブランチの正式名）でルール違反が見つかった |
+| `Changes must be made through a pull request.` | 「Require a pull request before merging」に違反。PR を通して変更すること |
+| `3 of 3 required status checks are expected.` | 「Require status checks to pass」に違反。必須の3つのチェックの結果がまだ1つもない |
+| `[remote rejected] main -> main` | GitHub（remote）側が push を受け付けなかった。GitHub 上の `main` は何も変わっていない |
+
+`main` を変えるには PR を通すしかない、ということがわかる。
+
+ただし、手元のパソコンの `main` には、さっき作ったコミットが残ったままになっている。このままだと手元と GitHub の `main` が食い違ってしまうので、取り消しておく。
 
 ```powershell
 git reset --hard origin/main
@@ -113,14 +166,17 @@ git reset --hard origin/main
 
 ### 4. CI が赤い PR はマージできない
 
+次は、正しく PR を出したけれど CI が失敗している場合。ルールセットを作る前は「CI が赤くてもマージボタンが押せてしまう」状態だった（導入の「考えてみよう」）。それが本当に止められるかを確かめる。
+
 ```powershell
 git switch -c test/protected
 ```
 
-わざとテストを失敗させる。`lib/todos.test.js` の適当なテストの期待値を変える（例：`toBe(1)` → `toBe(999)`）。
+`git switch -c <名前>` は、新しいブランチを作ってそこへ移動するコマンド。ここでわざとテストを失敗させる。`lib/todos.test.js` の適当なテストの期待値を変える（例：`toBe(1)` → `toBe(999)`）。
 
 ```powershell
-git commit -am "test: わざとテストを失敗させる"
+git add .
+git commit -m "test: わざとテストを失敗させる"
 git push -u origin test/protected
 gh pr create --fill
 gh pr view --web
@@ -128,30 +184,38 @@ gh pr view --web
 
 PR の画面の下のほう：
 
-- CI が動いている間は「**Merging is blocked**」と表示され、マージボタンが押せない
-- `test` が赤になっても、マージボタンは押せないまま
+- CI が動いている間は「**Merging is blocked**」と表示され、マージボタンが押せない（必須チェックの結果がまだ出ていないため）
+- `test` が赤（✗）になっても、マージボタンは押せないまま
+- `build` は `needs: [lint, test]` で「`lint` と `test` が成功したら動く」ように書いてあるので、`test` が失敗すると実行されずに **Skipped**（スキップ）になる
 - ターミナルから `gh pr merge` しようとしても拒否される
+
+> チェック一覧で **Required** と付いているものが、ルールセットで必須にしたチェック。どれが原因で止められているかは、ここで赤くなっているものを探せばわかる。
 
 ```powershell
 gh pr merge --merge
 # => X Pull request ... is not mergeable: the base branch policy prohibits the merge.
 ```
 
-テストを直して push する。
+`the base branch policy prohibits the merge` は「マージ先のブランチ（base branch＝`main`）のルールがマージを禁止している」という意味。
+
+テストを元に戻して（`toBe(999)` → 元の値）、もう一度 push する。同じ PR のブランチに push すれば、PR に新しいコミットが追加され、CI が自動でもう一度動く。PR を作り直す必要はない。
 
 ```powershell
-git commit -am "fix: テストを元に戻す"
+git add .
+git commit -m "fix: テストを元に戻す"
 git push
 gh pr checks --watch
 ```
 
-3つとも緑になると、マージボタンが押せるようになる。
+`gh pr checks --watch` は、PR のチェックの結果が全部出るまでターミナルで見張り続けるコマンド。3つとも緑（✓）になると、マージボタンが押せるようになる。
 
 ```powershell
 gh pr merge --merge --delete-branch
 git switch main
 git pull
 ```
+
+`--delete-branch` を付けると、マージしたあとに PR のブランチ（`test/protected`）を GitHub 側と手元の両方から消してくれる。最後に `main` に戻って `git pull` し、マージされた内容を手元にも取り込んでおく。
 
 ### 5. 「最新にしてから」ルール
 
@@ -166,7 +230,9 @@ PR B：TodoForm を使う TodoApp を変更（CI 緑）┼── 両方マージ
 
 A と B はそれぞれ単独ではテストが通っていても、**組み合わせたら壊れる** ことがある。「最新の `main` を取り込んだ状態で CI が通ったこと」を必須にすると、これを防げる。
 
-PR の画面に **Update branch** ボタンが出たら、押すと `main` の変更が PR ブランチに取り込まれ、CI がもう一度動く。ターミナルでは次のようにする。
+`main` が先に進んでいると、PR の画面に「**This branch is out-of-date with the base branch**」（このブランチはマージ先より古い）と表示される。その横の **Update branch** ボタンを押すと、`main` の変更が PR ブランチに取り込まれ、CI がもう一度動く。緑になればマージできる。
+
+ターミナルで同じことをするには次のようにする。
 
 ```powershell
 git switch <PRのブランチ>
@@ -174,13 +240,19 @@ git pull origin main
 git push
 ```
 
+`git pull origin main` は「GitHub の `main` の最新の変更を、今いるブランチに取り込む」コマンド。取り込んだ結果を `git push` すると、PR に反映されて CI が動き直す。
+
+> 取り込むときに **コンフリクト**（同じ行を両方で変えていて、Git が自動でまとめられない状態）が起きたら、VS Code でどちらを残すか選んで保存し、`git add .` → `git commit` → `git push` する。
+
 ### 6. ルールセットの状態を確認する
 
 ```powershell
 gh api "repos/{owner}/{repo}/rulesets"
 ```
 
-`{owner}` と `{repo}` は、今いるリポジトリの持ち主と名前に `gh` が自動で置き換えてくれる。`protect-main` が表示されればOK。
+`gh api` は、GitHub の API（プログラムから GitHub の情報を読み書きするための窓口）を呼び出すコマンド。`{owner}` と `{repo}` は、今いるリポジトリの持ち主と名前に `gh` が自動で置き換えてくれる。結果は JSON（データを `{ }` や `[ ]` で表す書き方）で表示され、`"name": "protect-main"` と `"enforcement": "active"` が見つかればOK。
+
+画面で確認するだけでなくコマンドでも確かめられるようにしておくと、「設定したつもりで効いていなかった」を早く見つけられる。
 
 また、Settings → Rules → **Insights** では、ルールによって拒否された push や、ルールを満たしてマージされた PR の記録が見られる。
 

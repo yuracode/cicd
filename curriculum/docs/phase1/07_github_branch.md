@@ -321,12 +321,14 @@ git switch main
 git switch -c feature/about-text     # 先にブランチを作っておく
 git switch main
 # app/about/page.js を編集
-git commit -am "docs: about の説明文を変更"
+git add .
+git commit -m "docs: about の説明文を変更"
 git push
 
 git switch feature/about-text
 # app/about/page.js の同じ行を別の内容に編集
-git commit -am "docs: about の説明文を変更（別案）"
+git add .
+git commit -m "docs: about の説明文を変更（別案）"
 git merge main
 # => CONFLICT (content): Merge conflict in app/about/page.js
 ```

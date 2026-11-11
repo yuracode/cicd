@@ -166,7 +166,8 @@ npm run lint
 **手元で気づいたが、あえてそのまま** push して PR を作る。
 
 ```powershell
-git commit -am "test: わざとlintエラーを入れる"
+git add .
+git commit -m "test: わざとlintエラーを入れる"
 git push -u origin test/break-lint
 gh pr create --fill
 gh pr checks --watch
@@ -195,7 +196,8 @@ This API is only available in Client Components.
 **ESLint では見つからないが、ビルドでは見つかる間違い** がある。だから CI では lint と build の両方を実行する。
 
 ```powershell
-git commit -am "test: わざとbuildエラーを入れる"
+git add .
+git commit -m "test: わざとbuildエラーを入れる"
 git push
 gh pr checks --watch
 ```
@@ -209,7 +211,8 @@ gh pr checks --watch
 ```powershell
 npm run lint
 npm run build
-git commit -am "fix: わざと入れたエラーを直す"
+git add .
+git commit -m "fix: わざと入れたエラーを直す"
 git push
 gh pr checks --watch
 ```
